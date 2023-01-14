@@ -1,0 +1,26 @@
+{
+  "manifest_version": 3,
+  "name": "TheShire",
+  "version": "1.0",
+  "description": "This extension is my learn result",
+  "icons": {
+    "16": "images/icon16.png",
+    "32": "images/icon32.png",
+    "48": "images/icon48.png",
+    "64": "images/icon64.png",
+    "128": "images/icon128.png"
+  },
+  "content_scripts": [
+    {
+        "js": ["script/content.js"],
+        "matches": [
+            "https://www.bilibili.com/",
+            "https://www.baidu.com/",
+            "https://data.iweiqidian.com/admin.php/user/publics/signin.html"
+        ]
+    }
+  ],
+  "background": {
+    "service_worker": "background.js"
+  }
+}
