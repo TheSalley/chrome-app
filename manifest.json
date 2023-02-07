@@ -18,6 +18,12 @@
             "https://www.baidu.com/",
             "https://data.iweiqidian.com/admin.php/user/publics/signin.html"
         ]
+    },
+    {
+      "js": ["script/note.js"],
+        "matches": [
+            "https://zh.javascript.info/"
+        ]
     }
   ],
   "background": {

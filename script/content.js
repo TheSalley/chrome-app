@@ -13,4 +13,3 @@ console.log(document.querySelector('.text-center').children[1].style);
 document.querySelector('.text-center').children[1].innerHTML = '微起点'
 document.querySelector('.text-center').children[1].style.fontWeight = 700
 
-console.log();
