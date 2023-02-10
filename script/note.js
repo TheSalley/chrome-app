@@ -1,6 +1,6 @@
 var lists = Array.from(document.querySelectorAll(".list-sub__title"));
 
-var arr = ["变量", "空值合并运算符 '??'"];
+var arr = ["变量", "空值合并运算符 '??'", "LocalStorage，sessionStorage"];
 
 lists.forEach((item, index) => {
   arr.forEach((i) => {
