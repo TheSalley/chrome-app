@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>boss helper</title>
+    <link rel="stylesheet" href="./popup.css">
+</head>
+
+<body>
+    <main>
+        <h1>boss 助手</h1>
+        <div class="box">
+            <nav>
+                <ul>
+                    <li>
+                        <span>推荐牛人</span>
+                    </li>
+                    <li>
+                        <span class="selected_text">沟通</span>
+                    </li>
+                    <li>
+                        <span>关于</span>
+                    </li>
+                </ul>
+            </nav>
+            <section class="recommend">
+                <div class="row">
+                    <span>期望岗位(筛选项): </span>
+                    <input type="text" id="wish_job">
+                </div>
+                <div class="row">
+                    <span>是否在线: </span>
+                    <label>
+                        <input type="checkbox" name="status" id="">
+                        在线
+                    </label>
+                </div>
+                <div class="row btn_area">
+                    <button id="match_btn">匹配</button>
+                </div>
+            </section>
+            <section class="communicate active">
+                <div class="row">
+                    <span>发送人数: </span>
+                    <input type="number" id="send_count" min="0" max="5000">
+                </div>
+                <div class="row">
+                    <span>招呼内容: </span>
+                    <div class="word_area">
+                        <div contenteditable="true" id="send_word"></div>
+                        <div class="emotion">
+                            <ul>
+                                <li>
+                                    <img src="https://static.zhipin.com/zhipin-boss/assets/chat/images/emoji/emoji-common/emoji-1.png"
+                                    data-key="微笑" class="emoj-insert" title="微笑" alt="微笑">
+                                </li>
+                                <li>
+                                    <img src="https://static.zhipin.com/zhipin-boss/assets/chat/images/emoji/emoji-common/emoji-2.png"
+                                    data-key="憨笑" class="emoj-insert" title="憨笑" alt="憨笑">
+                                </li>
+                                <li>
+                                    <img src="https://static.zhipin.com/zhipin-boss/assets/chat/images/emoji/emoji-common/emoji-6.png"
+                                    data-key="害羞" class="emoj-insert" title="害羞" alt="害羞">
+                                </li>
+                                <li>
+                                    <img src="https://static.zhipin.com/zhipin-boss/assets/chat/images/emoji/emoji-common/emoji-17.png"
+                                        data-key="委屈" class="emoj-insert" title="委屈" alt="委屈">
+                                </li>
+                                <li>
+                                    <img src="https://static.zhipin.com/zhipin-boss/assets/chat/images/emoji/emoji-common/emoji-23.png"
+                                        data-key="面试" class="emoj-insert" title="面试" alt="面试">
+                                </li>
+                                <li>
+                                    <img src="https://static.zhipin.com/zhipin-boss/assets/chat/images/emoji/emoji-common/emoji-22.png"
+                                    data-key="offer" class="emoj-insert" title="offer" alt="offer">
+                                </li>
+                                <li>
+                                    <img src="https://static.zhipin.com/zhipin-boss/assets/chat/images/emoji/emoji-common/emoji-11.png"
+                                    data-key="鼓掌" class="emoj-insert" title="鼓掌" alt="鼓掌">
+                                </li>
+                                <li>
+                                    <img src="https://static.zhipin.com/zhipin-boss/assets/chat/images/emoji/emoji-common/emoji-36.png"
+                                    data-key="喝可乐" class="emoj-insert" title="喝可乐"  alt="喝可乐">
+                                </li>
+                                <li>
+                                    <img src="https://static.zhipin.com/zhipin-boss/assets/chat/images/emoji/emoji-common/emoji-72.png"
+                                    data-key="赞" class="emoj-insert" title="赞" alt="赞">
+                                </li>
+                                <li>
+                                    <img src="https://static.zhipin.com/zhipin-boss/assets/chat/images/emoji/emoji-common/emoji-74.png"
+                                    data-key="OK" class="emoj-insert" title="OK" alt="OK">
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="row btn_area">
+                    <button id="pause_btn">暂停</button>
+                    &#x3000;
+                    <button id="play_btn">启动</button>
+                </div>
+                <div class="row">
+                    <span>日志</span>
+                    <div class="log"></div>
+                </div>
+            </section>
+            <section class="introduce">
+                <div class="is_login">
+                    <div class="row">
+                        <span>用户名: </span>
+                        <span class="user"></span>
+                    </div>
+                    <div class="row">
+                        <span>剩余时间: </span>
+                        <span class="time"></span>
+                    </div>
+                </div>
+                <div class="no_login">
+                    <p>用户暂未登录，请先去登录</p>
+                    <div class="row btn_area">
+                        <button id="go_login">去登录</button>
+                    </div>
+                </div>
+                <p>声明：招聘自动化工具，提高您的效率。</p>
+
+            </section>
+        </div>
+        <div class="login">
+            <div class="row">
+                <span>用户名: </span>
+                <input type="text" id="username">
+            </div>
+            <div class="row">
+                <span>密码: </span>
+                <input type="password" id="password">
+            </div>
+            <div class="center-box">
+                <button id="login_btn">登录</button>
+            </div>
+        </div>
+    </main>
+    <div class="loading">加载中</div>
+    <script src="script/popup.js"></script>
+    <script src="script/boss.js"></script>
+</body>
+
+</html>
