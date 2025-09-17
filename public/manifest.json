@@ -5,8 +5,7 @@
   "description": "WP/Shopify 小工具",
   "permissions": [
     "activeTab",
-    "tabs",
-    "storage"
+    "tabs"
   ],
   "action": {
     "default_popup": "index.html",
