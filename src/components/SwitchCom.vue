@@ -1,17 +1,9 @@
 <template>
-  <input
-    type="checkbox"
-    name="checkbox1"
-    id="checkbox1"
-    class="ios-toggle"
-    checked
-  />
-  <label
-    for="checkbox1"
-    class="checkbox-label"
-    data-off="off"
-    data-on="on"
-  ></label>
+  <label class="rocker rocker-small">
+    <input type="checkbox" />
+    <span class="switch-left">Yes</span>
+    <span class="switch-right">No</span>
+  </label>
 </template>
 <script setup>
 import { ref, onMounted } from "vue";
@@ -43,107 +35,146 @@ onMounted(async () => {
 });
 </script>
 <style scoped>
-.ios-toggle,
-.ios-toggle:active {
-  position: absolute;
-  top: -5000px;
-  height: 0;
-  width: 0;
-  opacity: 0;
-  border: none;
-  outline: none;
-}
-.checkbox-label {
-  display: block;
+/* Switch starts here */
+.rocker {
+  display: inline-block;
   position: relative;
-  padding: 10px;
-  margin-bottom: 20px;
-  font-size: 12px;
-  line-height: 16px;
-  width: 100%;
-  height: 36px;
-  /*border-radius*/
-  -webkit-border-radius: 18px;
-  -moz-border-radius: 18px;
-  border-radius: 18px;
-  background: #f8f8f8;
-  cursor: pointer;
+  /*
+    SIZE OF SWITCH
+    ==============
+    All sizes are in em - therefore
+    changing the font-size here
+    will change the size of the switch.
+    See .rocker-small below as example.
+    */
+  font-size: 2em;
+  font-weight: bold;
+  text-align: center;
+  text-transform: uppercase;
+  color: #888;
+  width: 7em;
+  height: 4em;
+  overflow: hidden;
+  border-bottom: 0.5em solid #eee;
 }
-.checkbox-label:before {
-  content: "";
-  display: block;
-  position: absolute;
-  z-index: 1;
-  line-height: 34px;
-  text-indent: 40px;
-  height: 36px;
-  width: 36px;
-  /*border-radius*/
-  -webkit-border-radius: 100%;
-  -moz-border-radius: 100%;
-  border-radius: 100%;
-  top: 0px;
-  left: 0px;
-  right: auto;
-  background: white;
-  /*box-shadow*/
-  -webkit-box-shadow: 0 3px 3px rgba(0, 0, 0, 0.2), 0 0 0 2px #dddddd;
-  -moz-box-shadow: 0 3px 3px rgba(0, 0, 0, 0.2), 0 0 0 2px #dddddd;
-  box-shadow: 0 3px 3px rgba(0, 0, 0, 0.2), 0 0 0 2px #dddddd;
-}
-.checkbox-label:after {
-  content: attr(data-off);
-  display: block;
-  position: absolute;
-  z-index: 0;
-  top: 0;
-  left: -300px;
-  padding: 10px;
-  height: 100%;
-  width: 300px;
-  text-align: right;
-  color: #bfbfbf;
-  white-space: nowrap;
-}
-.ios-toggle:checked + .checkbox-label {
-  /*box-shadow*/
-  -webkit-box-shadow: inset 0 0 0 20px rgba(19, 191, 17, 1),
-    0 0 0 2px rgba(19, 191, 17, 1);
-  -moz-box-shadow: inset 0 0 0 20px rgba(19, 191, 17, 1),
-    0 0 0 2px rgba(19, 191, 17, 1);
-  box-shadow: inset 0 0 0 20px rgba(19, 191, 17, 1),
-    0 0 0 2px rgba(19, 191, 17, 1);
-}
-.ios-toggle:checked + .checkbox-label:before {
-  left: calc(100% - 36px);
-  /*box-shadow*/
-  -webkit-box-shadow: 0 0 0 2px transparent, 0 3px 3px rgba(0, 0, 0, 0.3);
-  -moz-box-shadow: 0 0 0 2px transparent, 0 3px 3px rgba(0, 0, 0, 0.3);
-  box-shadow: 0 0 0 2px transparent, 0 3px 3px rgba(0, 0, 0, 0.3);
-}
-.ios-toggle:checked + .checkbox-label:after {
-  content: attr(data-on);
-  left: 60px;
-  width: 36px;
-}
-/* GREEN CHECKBOX */
 
-#checkbox1 + .checkbox-label {
-  /*box-shadow*/
-  -webkit-box-shadow: inset 0 0 0 0px rgba(19, 191, 17, 1), 0 0 0 2px #dddddd;
-  -moz-box-shadow: inset 0 0 0 0px rgba(19, 191, 17, 1), 0 0 0 2px #dddddd;
-  box-shadow: inset 0 0 0 0px rgba(19, 191, 17, 1), 0 0 0 2px #dddddd;
+.rocker-small {
+  font-size: 0.75em;
+  /* Sizes the switch */
+  margin: 1em;
 }
-#checkbox1:checked + .checkbox-label {
-  /*box-shadow*/
-  -webkit-box-shadow: inset 0 0 0 18px rgba(19, 191, 17, 1),
-    0 0 0 2px rgba(19, 191, 17, 1);
-  -moz-box-shadow: inset 0 0 0 18px rgba(19, 191, 17, 1),
-    0 0 0 2px rgba(19, 191, 17, 1);
-  box-shadow: inset 0 0 0 18px rgba(19, 191, 17, 1),
-    0 0 0 2px rgba(19, 191, 17, 1);
+
+.rocker::before {
+  content: "";
+  position: absolute;
+  top: 0.5em;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #999;
+  border: 0.5em solid #eee;
+  border-bottom: 0;
 }
-#checkbox1:checked + .checkbox-label:after {
-  color: rgba(19, 191, 17, 1);
+
+.rocker input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.switch-left,
+.switch-right {
+  cursor: pointer;
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 2.5em;
+  width: 3em;
+  transition: 0.2s;
+  user-select: none;
+}
+
+.switch-left {
+  height: 2.4em;
+  width: 2.75em;
+  left: 0.85em;
+  bottom: 0.4em;
+  background-color: #ddd;
+  transform: rotate(15deg) skewX(15deg);
+}
+
+.switch-right {
+  right: 0.5em;
+  bottom: 0;
+  background-color: #bd5757;
+  color: #fff;
+}
+
+.switch-left::before,
+.switch-right::before {
+  content: "";
+  position: absolute;
+  width: 0.4em;
+  height: 2.45em;
+  bottom: -0.45em;
+  background-color: #ccc;
+  transform: skewY(-65deg);
+}
+
+.switch-left::before {
+  left: -0.4em;
+}
+
+.switch-right::before {
+  right: -0.375em;
+  background-color: transparent;
+  transform: skewY(65deg);
+}
+
+input:checked + .switch-left {
+  background-color: #0084d0;
+  color: #fff;
+  bottom: 0px;
+  left: 0.5em;
+  height: 2.5em;
+  width: 3em;
+  transform: rotate(0deg) skewX(0deg);
+}
+
+input:checked + .switch-left::before {
+  background-color: transparent;
+  width: 3.0833em;
+}
+
+input:checked + .switch-left + .switch-right {
+  background-color: #ddd;
+  color: #888;
+  bottom: 0.4em;
+  right: 0.8em;
+  height: 2.4em;
+  width: 2.75em;
+  transform: rotate(-15deg) skewX(-15deg);
+}
+
+input:checked + .switch-left + .switch-right::before {
+  background-color: #ccc;
+}
+
+/* Keyboard Users */
+input:focus + .switch-left {
+  color: #333;
+}
+
+input:checked:focus + .switch-left {
+  color: #fff;
+}
+
+input:focus + .switch-left + .switch-right {
+  color: #fff;
+}
+
+input:checked:focus + .switch-left + .switch-right {
+  color: #333;
 }
 </style>
