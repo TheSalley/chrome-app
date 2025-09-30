@@ -1,0 +1,8 @@
+@import "tailwindcss";
+
+/* 可选：全局字体和变量 */
+:root {
+    font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+    line-height: 1.5;
+    font-weight: 400;
+}

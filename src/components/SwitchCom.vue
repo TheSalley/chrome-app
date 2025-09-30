@@ -1,38 +1,37 @@
 <template>
   <label class="rocker rocker-small">
-    <input type="checkbox" />
+    <input type="checkbox" v-model="isChecked" />
     <span class="switch-left">Yes</span>
     <span class="switch-right">No</span>
   </label>
 </template>
 <script setup>
-import { ref, onMounted } from "vue";
-const isChecked = ref(true);
+import { ref, onMounted, watch } from "vue";
+const isChecked = ref(false);
 
-onMounted(async () => {
-  const [tab] = await chrome.tabs.query({
-    active: true,
-    currentWindow: true,
-  });
+async function sendToContent() {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (tab?.id) {
     try {
       const response = await chrome.tabs.sendMessage(tab.id, {
         action: "popupOpened",
-        data: {
-          isChecked: isChecked.value,
-        },
+        data: { isChecked: isChecked.value },
       });
-      if (response) {
-      } else {
-        console.log("没有收到有效响应");
-      }
+      if (!response) console.log("没有收到有效响应");
     } catch (error) {
       console.log("发送消息时出错: ", error);
     }
   } else {
     console.log("未能获取当前标签页");
   }
-});
+}
+// onMounted(()=>{
+//   sendToContent();
+// })
+watch(isChecked,(newVal, oldVal)=>{
+  console.log("[popup] watch触发: ", oldVal, "→", newVal);
+  sendToContent();
+})
 </script>
 <style scoped>
 /* Switch starts here */

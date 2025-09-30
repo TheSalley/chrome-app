@@ -15,8 +15,7 @@ export default defineConfig({
     outDir: "dist",
     rollupOptions: {
       input: {
-        main: "./src/main.js",
-        "style.css": "./src/style.css",
+        main: "./index.html",  // ✅ 入口改成 HTML
         "scripts/content": "./src/scripts/content.js",
         "scripts/service-worker": "./src/scripts/service-worker.js",
         "scripts/inject": "./src/scripts/inject.js",
