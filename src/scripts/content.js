@@ -6,38 +6,38 @@ script.src = chrome.runtime.getURL("assets/inject.js");
 
 chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
   if (message.action === "popupOpened") {
-    console.log(message.data.isChecked);
-    if (message.data.isChecked) {
-      try {
-        document
-          .querySelectorAll("form.elementor-form .elementor-field")
-          .forEach((i) => {
-            let obj = {
-              text: `test: ${i.placeholder}`,
-              tel: "15297614000",
-              email: "test@ehaitech.com",
-              textarea: "This is test message",
-            };
-            i.value = obj[i.type];
-            if (i.name == "zendkee_captcha") {
-              i.value = i
-                .closest(".elementor-field-group")
-                .querySelector(".captcha_code").textContent;
-            }
-          });
-      } catch (error) {
-        console.log("@@@ 表单填充异常", error);
-      }
-    } else {
-      console.log("quxiao");
-      document
-        .querySelectorAll("form.elementor-form .elementor-field")
-        .forEach((i) => {
-          i.value = "";
-          // fields.forEach((i) => {
-          //   i.value = "";
-        });
-    }
+    // console.log(message.data.isChecked);
+    // if (message.data.isChecked) {
+    //   try {
+    //     document
+    //       .querySelectorAll("form.elementor-form .elementor-field")
+    //       .forEach((i) => {
+    //         let obj = {
+    //           text: `test: ${i.placeholder}`,
+    //           tel: "15297614000",
+    //           email: "test@ehaitech.com",
+    //           textarea: "This is test message",
+    //         };
+    //         i.value = obj[i.type];
+    //         if (i.name == "zendkee_captcha") {
+    //           i.value = i
+    //             .closest(".elementor-field-group")
+    //             .querySelector(".captcha_code").textContent;
+    //         }
+    //       });
+    //   } catch (error) {
+    //     console.log("@@@ 表单填充异常", error);
+    //   }
+    // } else {
+    //   console.log("quxiao");
+    //   document
+    //     .querySelectorAll("form.elementor-form .elementor-field")
+    //     .forEach((i) => {
+    //       i.value = "";
+    //       // fields.forEach((i) => {
+    //       //   i.value = "";
+    //     });
+    // }
 
     // else if (message.action === "judgePage") {
     //   // sendResponse(sessionStorage.getItem("c-Shopify-info"));
@@ -102,3 +102,66 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
     return true;
   }
 });
+
+(function () {
+  try {
+    function isWordPress() {
+      // 1) meta generator
+      const meta = document.querySelector('meta[name="generator"]');
+      if (meta && /wordpress/i.test(meta.content)) return true;
+
+      // 2) 脚本 / 链接中有 wp-content / wp-includes
+      const allSrcs = Array.from(
+        document.querySelectorAll("script[src], link[href]")
+      )
+        .map((n) => n.src || n.href)
+        .filter(Boolean)
+        .join(" ");
+      if (/wp-content|wp-includes|\/wp-admin\//i.test(allSrcs)) return true;
+
+      // 3) 全局 window.wp 或 wpApiSettings 等（某些 theme/plugin 会挂载）
+      if (window.wp || window.wpApiSettings || window.ajaxurl) return true;
+
+      // 4) body 或 html class 包含常见 WP 标识
+      const cls =
+        document.documentElement.className +
+        " " +
+        ((document.body && document.body.className) || "");
+      if (/wp-|wordpress|wp-admin/i.test(cls)) return true;
+
+      // 否则认为不是 WordPress
+      return false;
+    }
+
+    // 2. 决定是否注入/运行你的主逻辑
+    if (!isWordPress()) {
+      // 非 WP 页面，不执行任何业务代码（尽量减少误伤）
+      return;
+    }
+
+    // 3. （可选）检查扩展设置：若用户/你曾在 storage 里关闭自动注入则跳过
+    chrome.storage?.local?.get?.(["switchStatus"], (res = {}) => {
+      console.log('5555', res)
+      if (res.switchStatus) {
+        document
+          .querySelectorAll("form.elementor-form .elementor-field")
+          .forEach((i) => {
+            let obj = {
+              text: `test: ${i.placeholder}`,
+              tel: "15297614000",
+              email: "test@ehaitech.com",
+              textarea: "This is test message",
+            };
+            i.value = obj[i.type];
+            if (i.name == "zendkee_captcha") {
+              i.value = i
+                .closest(".elementor-field-group")
+                .querySelector(".captcha_code").textContent;
+            }
+          });
+      }
+    });
+  } catch (err) {
+    console.error("content-check-run error", err);
+  }
+})();

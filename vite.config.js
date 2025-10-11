@@ -2,10 +2,18 @@ import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
 import tailwindcss from "@tailwindcss/vite";
 import path from "path";
+import Components from "unplugin-vue-components/vite";
+import { PrimeVueResolver } from "@primevue/auto-import-resolver";
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [vue(), tailwindcss()],
+  plugins: [
+    vue(),
+    tailwindcss(),
+    Components({
+      resolvers: [PrimeVueResolver()],
+    }),
+  ],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
@@ -15,7 +23,7 @@ export default defineConfig({
     outDir: "dist",
     rollupOptions: {
       input: {
-        main: "./index.html",  // ✅ 入口改成 HTML
+        main: "./index.html", // ✅ 入口改成 HTML
         "scripts/content": "./src/scripts/content.js",
         "scripts/service-worker": "./src/scripts/service-worker.js",
         "scripts/inject": "./src/scripts/inject.js",

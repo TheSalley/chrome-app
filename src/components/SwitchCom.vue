@@ -1,12 +1,19 @@
 <template>
   <label class="rocker rocker-small">
-    <input type="checkbox" v-model="isChecked" />
+    <input type="checkbox" v-model="props.status" @change="emits('switchChange', $event.target.checked)" />
     <span class="switch-left">Yes</span>
     <span class="switch-right">No</span>
   </label>
 </template>
 <script setup>
 import { ref, onMounted, watch } from "vue";
+
+const props = defineProps({
+  status: Boolean,
+});
+
+const emits = defineEmits(['switchChange'])
+
 const isChecked = ref(false);
 
 async function sendToContent() {
@@ -25,27 +32,11 @@ async function sendToContent() {
     console.log("未能获取当前标签页");
   }
 }
-// onMounted(()=>{
-//   sendToContent();
-// })
-watch(isChecked,(newVal, oldVal)=>{
-  console.log("[popup] watch触发: ", oldVal, "→", newVal);
-  sendToContent();
-})
 </script>
 <style scoped>
-/* Switch starts here */
 .rocker {
   display: inline-block;
   position: relative;
-  /*
-    SIZE OF SWITCH
-    ==============
-    All sizes are in em - therefore
-    changing the font-size here
-    will change the size of the switch.
-    See .rocker-small below as example.
-    */
   font-size: 2em;
   font-weight: bold;
   text-align: center;
@@ -59,7 +50,6 @@ watch(isChecked,(newVal, oldVal)=>{
 
 .rocker-small {
   font-size: 0.75em;
-  /* Sizes the switch */
   margin: 1em;
 }
 
@@ -160,7 +150,6 @@ input:checked + .switch-left + .switch-right::before {
   background-color: #ccc;
 }
 
-/* Keyboard Users */
 input:focus + .switch-left {
   color: #333;
 }

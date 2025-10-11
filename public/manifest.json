@@ -2,11 +2,8 @@
   "manifest_version": 3,
   "name": "WP tools",
   "version": "0.0.1",
-  "description": "WP/Shopify 小工具",
-  "permissions": [
-    "activeTab",
-    "tabs"
-  ],
+  "description": "WP 小工具",
+  "permissions": ["activeTab", "storage"],
   "action": {
     "default_popup": "index.html",
     "default_icon": "icons/logo.png"

@@ -1,6 +1,6 @@
 <template>
 <div>
-  <button @click="checkButtons">
+  <button @click="checkButtons" class="w-[50px]">
     <span class="text">RUN</span>
     <span>Disable!</span>
   </button>
@@ -47,7 +47,7 @@ button {
   align-items: center;
   justify-content: center;
     margin-top: 10px;
-  width: 140px;
+  width: 50px;
   padding: 14px 18px;
   border-radius: 12px;
   font-weight: 600;
