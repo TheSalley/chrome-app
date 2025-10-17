@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "WP tools",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "WP 小工具",
   "permissions": ["activeTab", "storage"],
   "action": {

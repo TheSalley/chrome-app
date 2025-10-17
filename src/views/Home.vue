@@ -3,7 +3,7 @@
     <Tabs value="0">
       <TabList>
         <Tab value="0">WordPress</Tab>
-        <Tab disabled value="1">Shopify</Tab>
+        <Tab value="1">Shopify</Tab>
       </TabList>
       <TabPanels>
         <TabPanel value="0">

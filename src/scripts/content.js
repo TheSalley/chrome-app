@@ -148,7 +148,7 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
           .forEach((i) => {
             let obj = {
               text: `test: ${i.placeholder}`,
-              tel: "15297614000",
+              tel: "15249630000",
               email: "test@ehaitech.com",
               textarea: "This is test message",
             };

@@ -6,7 +6,7 @@
   </label>
 </template>
 <script setup>
-import { ref, onMounted, watch } from "vue";
+import { ref } from "vue";
 
 const props = defineProps({
   status: Boolean,
