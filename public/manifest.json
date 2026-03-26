@@ -1,9 +1,9 @@
 {
   "manifest_version": 3,
   "name": "WP tools",
-  "version": "0.0.2",
+  "version": "0.0.4",
   "description": "WP 小工具",
-  "permissions": ["activeTab", "storage"],
+  "permissions": ["activeTab", "storage", "downloads", "debugger"],
   "action": {
     "default_popup": "index.html",
     "default_icon": "icons/logo.png"

@@ -1,36 +1,34 @@
 <template>
   <label class="rocker rocker-small">
-    <input type="checkbox" v-model="props.status" @change="emits('switchChange', $event.target.checked)" />
+    <input type="checkbox" v-model="props.status" @change="onChange($event)" />
     <span class="switch-left">Yes</span>
     <span class="switch-right">No</span>
   </label>
 </template>
 <script setup>
-import { ref } from "vue";
-
 const props = defineProps({
   status: Boolean,
 });
 
-const emits = defineEmits(['switchChange'])
+const emits = defineEmits(["switchChange"]);
 
-const isChecked = ref(false);
-
-async function sendToContent() {
+async function sendToContent(isChecked) {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (tab?.id) {
-    try {
-      const response = await chrome.tabs.sendMessage(tab.id, {
-        action: "popupOpened",
-        data: { isChecked: isChecked.value },
-      });
-      if (!response) console.log("没有收到有效响应");
-    } catch (error) {
-      console.log("发送消息时出错: ", error);
-    }
-  } else {
-    console.log("未能获取当前标签页");
+  if (!tab?.id) return;
+  try {
+    await chrome.tabs.sendMessage(tab.id, {
+      action: "popupOpened",
+      data: { isChecked },
+    });
+  } catch (e) {
+    console.log("发送消息到 content 失败（可能未刷新页面）:", e.message);
   }
+}
+
+function onChange(event) {
+  const checked = event.target.checked;
+  emits("switchChange", checked);
+  if (checked) sendToContent(true);
 }
 </script>
 <style scoped>

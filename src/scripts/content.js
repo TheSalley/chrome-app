@@ -1,167 +1,210 @@
 console.log("@@@@@content.js is injected.");
 
-const script = document.createElement("script");
-script.src = chrome.runtime.getURL("assets/inject.js");
-(document.head || document.documentElement).appendChild(script);
+// 非 Shopify 主题商店页面才注入 inject.js
+if (location.hostname !== "themes.shopify.com") {
+  const script = document.createElement("script");
+  script.src = chrome.runtime.getURL("assets/inject.js");
+  (document.head || document.documentElement).appendChild(script);
+}
 
-chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
-  if (message.action === "popupOpened") {
-    // console.log(message.data.isChecked);
-    // if (message.data.isChecked) {
-    //   try {
-    //     document
-    //       .querySelectorAll("form.elementor-form .elementor-field")
-    //       .forEach((i) => {
-    //         let obj = {
-    //           text: `test: ${i.placeholder}`,
-    //           tel: "15297614000",
-    //           email: "test@ehaitech.com",
-    //           textarea: "This is test message",
-    //         };
-    //         i.value = obj[i.type];
-    //         if (i.name == "zendkee_captcha") {
-    //           i.value = i
-    //             .closest(".elementor-field-group")
-    //             .querySelector(".captcha_code").textContent;
-    //         }
-    //       });
-    //   } catch (error) {
-    //     console.log("@@@ 表单填充异常", error);
-    //   }
-    // } else {
-    //   console.log("quxiao");
-    //   document
-    //     .querySelectorAll("form.elementor-form .elementor-field")
-    //     .forEach((i) => {
-    //       i.value = "";
-    //       // fields.forEach((i) => {
-    //       //   i.value = "";
-    //     });
-    // }
+// 根据开关状态在页面加载时自动填充
+function tryFillIfEnabled() {
+  chrome.storage.local.get(["switchStatus"], (result) => {
+    if (result.switchStatus === true) {
+      fillElementorForms();
+    }
+  });
+}
 
-    // else if (message.action === "judgePage") {
-    //   // sendResponse(sessionStorage.getItem("c-Shopify-info"));
-    // }
+// 在 Shopify 主题商店页面注入“真实主题网址”按钮（插到底部预览条里）
+function setupShopifyThemeButton() {
+  if (location.hostname !== "themes.shopify.com") return;
+
+  let inserted = false;
+
+  function tryInsert() {
+    if (inserted) return true;
+    const demoContainer = document.querySelector("#demo-container");
+    const realUrl = demoContainer?.getAttribute(
+      "data-demo-store-iframe-url-value",
+    );
+    if (!realUrl) return false;
+    const viewDemoButton = document.querySelector(
+      '[data-demo-store-responder-target="viewDemoButton"]',
+    );
+    if (!viewDemoButton) return false;
+
+    inserted = true;
+    const btn = document.createElement("a");
+    btn.textContent = "真实地址";
+    btn.href = realUrl;
+    btn.target = "_blank";
+    btn.rel = "noopener noreferrer";
+    btn.style.padding = "8px 16px";
+    btn.style.borderRadius = "999px";
+    btn.style.border = "1px solid rgba(15,23,42,0.15)";
+    btn.style.background = "#10b981";
+    btn.style.color = "#fff";
+    btn.style.fontSize = "13px";
+    btn.style.fontWeight = "600";
+    btn.style.cursor = "pointer";
+    btn.style.whiteSpace = "nowrap";
+    viewDemoButton.parentElement.insertBefore(btn, viewDemoButton);
     return true;
   }
 
-  if (message.action === "checkButtons") {
-    // 核心检测逻辑
-    function checkButtons() {
-      const buttons = Array.from(
-        document.querySelectorAll("a.elementor-button")
+  // 立即尝试一次
+  if (tryInsert()) return;
+
+  // 用 MutationObserver：DOM 一出现目标就插入
+  const observer = new MutationObserver(() => {
+    if (tryInsert()) observer.disconnect();
+  });
+  observer.observe(document.documentElement, {
+    childList: true,
+    subtree: true,
+  });
+
+  // 备用：短间隔轮询，最多 15 秒
+  const deadline = Date.now() + 15000;
+  const timer = setInterval(() => {
+    if (inserted || Date.now() > deadline) {
+      clearInterval(timer);
+      observer.disconnect();
+      return;
+    }
+    if (tryInsert()) {
+      clearInterval(timer);
+      observer.disconnect();
+    }
+  }, 150);
+}
+
+// 默认填充数据（可后续从 storage 读取）
+const defaultFormData = {
+  text: "test",
+  tel: "15297614000",
+  email: "test@ehaitech.com",
+  textarea: "This is test message",
+};
+
+function fillElementorForms() {
+  const forms = document.querySelectorAll("form.elementor-form");
+  if (!forms.length) return { filled: 0, error: "未找到 Elementor 表单" };
+  let filled = 0;
+  try {
+    forms.forEach((form) => {
+      const inputs = form.querySelectorAll(
+        "input:not([type=hidden]):not([type=submit]):not([type=button]), textarea",
       );
-      let disabledCount = 0;
-
-      buttons.forEach((btn) => {
-        const rect = btn.getBoundingClientRect();
-        if (!btn.offsetParent) return;
-        // 保存原始文本（只保存一次）
-        if (!btn.dataset.originText) {
-          btn.dataset.originText = btn.innerText.trim();
+      inputs.forEach((el) => {
+        if (el.name === "zendkee_captcha" || el.name === "anti_spam_captcha") {
+          const group = el.closest(".elementor-field-group");
+          const codeEl = group?.querySelector(".captcha_code");
+          if (codeEl) {
+            el.value = codeEl.textContent?.trim() || "";
+            filled++;
+          }
+          return;
         }
-
-        // 每次检测前恢复状态
-        btn.style.backgroundColor = "";
-        btn.innerText = btn.dataset.originText;
-
-        // 判断按钮是否失效
-        const href = btn.getAttribute("href");
-        if ((!href || href === "#") && !btn.onclick) {
-          disabledCount++;
-          btn.style.backgroundColor = "#f44336";
-          btn.innerText = "不生效";
+        if (el.tagName === "TEXTAREA") {
+          el.value = defaultFormData.textarea;
+          filled++;
+          return;
+        }
+        const type = (el.type || "text").toLowerCase();
+        if (type === "email") {
+          el.value = defaultFormData.email;
+          filled++;
+        } else if (type === "tel") {
+          el.value = defaultFormData.tel;
+          filled++;
+        } else if (type === "text" || type === "search") {
+          el.value = el.placeholder
+            ? `test: ${el.placeholder}`
+            : defaultFormData.text;
+          filled++;
         }
       });
+    });
+    return { filled, error: null };
+  } catch (err) {
+    console.log("@@@ 表单填充异常", err);
+    return { filled, error: String(err) };
+  }
+}
 
-      return disabledCount;
-    }
+// 页面加载后根据开关状态自动填充（多次尝试以兼容延迟渲染的表单）
+[0, 800, 2000].forEach((delay) => {
+  setTimeout(tryFillIfEnabled, delay);
+});
 
-    // 延迟/重试检测（页面异步渲染用）
-    function tryCheckButtons(retries = 5, interval = 300) {
-      let attempt = 0;
+// 监听页面加载，若在 Shopify 主题商店则注入按钮
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", setupShopifyThemeButton);
+} else {
+  setupShopifyThemeButton();
+}
 
-      function attemptCheck() {
-        const disabledCount = checkButtons();
-        // 如果检测到失效按钮，或者达到最大重试次数就发送结果
-        if (disabledCount || attempt >= retries) {
-          sendResponse({ ok: true, disabledCount });
-        } else {
-          attempt++;
-          setTimeout(attemptCheck, interval);
-        }
-      }
-
-      attemptCheck();
-    }
-
-    // 调用
-    tryCheckButtons();
-
-    // 表示异步响应
-    return true;
+// 监听开关变化：在 popup 中开启时，当前页也会立刻填充
+chrome.storage.onChanged.addListener((changes, areaName) => {
+  if (areaName === "local" && changes.switchStatus?.newValue === true) {
+    tryFillIfEnabled();
   }
 });
 
-(function () {
-  try {
-    function isWordPress() {
-      // 1) meta generator
-      const meta = document.querySelector('meta[name="generator"]');
-      if (meta && /wordpress/i.test(meta.content)) return true;
-
-      // 2) 脚本 / 链接中有 wp-content / wp-includes
-      const allSrcs = Array.from(
-        document.querySelectorAll("script[src], link[href]")
-      )
-        .map((n) => n.src || n.href)
-        .filter(Boolean)
-        .join(" ");
-      if (/wp-content|wp-includes|\/wp-admin\//i.test(allSrcs)) return true;
-
-      // 3) 全局 window.wp 或 wpApiSettings 等（某些 theme/plugin 会挂载）
-      if (window.wp || window.wpApiSettings || window.ajaxurl) return true;
-
-      // 4) body 或 html class 包含常见 WP 标识
-      const cls =
-        document.documentElement.className +
-        " " +
-        ((document.body && document.body.className) || "");
-      if (/wp-|wordpress|wp-admin/i.test(cls)) return true;
-
-      // 否则认为不是 WordPress
-      return false;
-    }
-
-    // 2. 决定是否注入/运行你的主逻辑
-    if (!isWordPress()) {
-      // 非 WP 页面，不执行任何业务代码（尽量减少误伤）
-      return;
-    }
-
-    // 3. （可选）检查扩展设置：若用户/你曾在 storage 里关闭自动注入则跳过
-    chrome.storage?.local?.get?.(["switchStatus"], (res = {}) => {
-      console.log('5555', res)
-      if (res.switchStatus) {
-        document
-          .querySelectorAll("form.elementor-form .elementor-field")
-          .forEach((i) => {
-            let obj = {
-              text: `test: ${i.placeholder}`,
-              tel: "15249630000",
-              email: "test@ehaitech.com",
-              textarea: "This is test message",
-            };
-            i.value = obj[i.type];
-            if (i.name == "zendkee_captcha") {
-              i.value = i
-                .closest(".elementor-field-group")
-                .querySelector(".captcha_code").textContent;
-            }
-          });
-      }
-    });
-  } catch (err) {
-    console.error("content-check-run error", err);
+// 接收来自 inject.js（页面上下文）的 Shopify 检测结果
+window.addEventListener("message", (event) => {
+  if (event.source !== window) return;
+  if (event.data?.type === "FROM_PAGE_SHOPIFY_INFO") {
+    chrome.storage.local
+      .set({ shopifyInfo: event.data.payload })
+      .catch(() => {});
   }
-})();
+});
+
+chrome.runtime.onMessage.addListener(async (message, _sender, sendResponse) => {
+  if (message.action === "popupOpened") {
+    const shouldFill = message.data?.isChecked === true;
+    if (shouldFill) {
+      const result = fillElementorForms();
+      sendResponse({ ok: true, filled: result.filled, error: result.error });
+    } else {
+      sendResponse({ ok: true, filled: 0 });
+    }
+    return false;
+  }
+  if (message.action === "fillForm") {
+    const result = fillElementorForms();
+    sendResponse({ ok: true, filled: result.filled, error: result.error });
+    return false;
+  }
+  if (message.action === "judgePage") {
+    window.postMessage({ type: "REQUEST_SHOPIFY_INFO" }, "*");
+    let responded = false;
+    const handler = (event) => {
+      if (
+        event.source !== window ||
+        event.data?.type !== "FROM_PAGE_SHOPIFY_INFO"
+      )
+        return;
+      if (responded) return;
+      responded = true;
+      window.removeEventListener("message", handler);
+      const payload = event.data.payload;
+      chrome.storage.local.set({ shopifyInfo: payload }).catch(() => {});
+      sendResponse(payload);
+    };
+    window.addEventListener("message", handler);
+    setTimeout(() => {
+      if (responded) return;
+      responded = true;
+      window.removeEventListener("message", handler);
+      chrome.storage.local.get(["shopifyInfo"], (result) => {
+        sendResponse(result.shopifyInfo ?? null);
+      });
+    }, 2500);
+    return true;
+  }
+  return false;
+});
