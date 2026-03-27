@@ -208,3 +208,12 @@ chrome.runtime.onMessage.addListener(async (message, _sender, sendResponse) => {
   }
   return false;
 });
+
+chrome.runtime.onMessage.addListener((msg) => {
+  if (msg.action === "download") {
+    const a = document.createElement("a");
+    a.href = msg.data;
+    a.download = "fullpage.png";
+    a.click();
+  }
+});
