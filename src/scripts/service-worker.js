@@ -98,18 +98,6 @@ chrome.runtime.onMessage.addListener(async (msg, sender, sendResponse) => {
     sendResponse({ success: true });
   } catch (e) {
     console.error("截图失败", e);
-    // 确保出错时也分离调试器
-    try {
-      const [tab] = await chrome.tabs.query({ 
-        active: true, 
-        currentWindow: true 
-      });
-      if (tab?.id) {
-        await chrome.debugger.detach({ tabId: tab.id });
-      }
-    } catch (detachError) {
-      console.error("分离调试器失败", detachError);
-    }
     sendResponse({ success: false, error: e.message });
   }
 });

@@ -42,5 +42,5 @@
       const info = collectShopifyInfo();
       sendToContentScript(info || { isShopify: false, error: "未检测到 Shopify" });
     }
-  });
+  });  
 })();

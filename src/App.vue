@@ -1,5 +1,5 @@
 <template>
-  <div class="w-[300px] h-[350px] px-[20px] py-[10px] bg-gray-50 shadow-lg">
+  <div class="w-[300px] h-[520px] px-[20px] py-[10px] bg-gray-50 shadow-lg">
     <Home />
   </div>
 </template>
