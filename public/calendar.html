@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>日历 · Todo</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg-top:#f6f7fb;
+  --bg-bottom:#e9ecf3;
+  --card:rgba(255,255,255,.8);
+  --card-solid:#fff;
+  --text:#1d1d1f;
+  --muted:#6e6e73;
+  --hairline:rgba(0,0,0,.06);
+  --accent:#0071e3;
+  --accent-soft:rgba(0,113,227,.1);
+  --accent-strong:#0a5dc2;
+  --danger:#ff3b30;
+  --done:#a1a1a6;
+  --shadow-card:0 1px 2px rgba(0,0,0,.04),0 18px 44px rgba(31,38,135,.08);
+}
+html,body{height:100%}
+body{
+  min-height:100vh;
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+  background:linear-gradient(180deg,var(--bg-top),var(--bg-bottom));
+  color:var(--text);
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+}
+body::before,body::after{
+  content:"";position:fixed;border-radius:50%;filter:blur(90px);z-index:-1;pointer-events:none;
+}
+body::before{
+  width:520px;height:520px;top:-160px;left:-120px;
+  background:radial-gradient(circle,rgba(0,113,227,.18),transparent 65%);
+}
+body::after{
+  width:560px;height:560px;bottom:-200px;right:-140px;
+  background:radial-gradient(circle,rgba(175,82,222,.14),transparent 65%);
+}
+.app{width:min(1400px,calc(100% - 40px));margin:0 auto;padding:44px 0 36px}
+.header{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;margin-bottom:26px}
+.header-left h1{font-size:34px;font-weight:700;letter-spacing:-.022em}
+.header-left p{margin-top:6px;color:var(--muted);font-size:14.5px}
+.today-btn{
+  border:1px solid var(--hairline);background:var(--card);
+  backdrop-filter:blur(20px) saturate(1.4);-webkit-backdrop-filter:blur(20px) saturate(1.4);
+  color:var(--accent);font-size:14px;font-weight:500;
+  border-radius:980px;padding:9px 20px;cursor:pointer;
+  box-shadow:0 4px 14px rgba(0,0,0,.05);
+  transition:background .18s ease,transform .18s ease,box-shadow .18s ease;
+}
+.today-btn:hover{background:var(--accent-soft);transform:translateY(-1px);box-shadow:0 6px 18px rgba(0,0,0,.08)}
+.today-btn:active{transform:translateY(0)}
+.layout{display:grid;grid-template-columns:280px minmax(0,1fr) 330px;gap:18px;align-items:start}
+.card{
+  background:var(--card);
+  backdrop-filter:blur(22px) saturate(1.5);-webkit-backdrop-filter:blur(22px) saturate(1.5);
+  border:1px solid rgba(255,255,255,.65);
+  border-radius:24px;
+  box-shadow:var(--shadow-card);
+}
+.card-pad{padding:24px}
+.card-title{font-size:15px;font-weight:650;letter-spacing:.01em;display:flex;align-items:center;gap:8px}
+.card-sub{font-size:12.5px;color:var(--muted);margin-top:3px}
+
+/* Holidays */
+.holidays .card-title{justify-content:space-between}
+.holiday-list{display:flex;flex-direction:column;gap:10px;margin-top:18px;max-height:520px;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none}
+.holiday-list::-webkit-scrollbar{display:none}
+.holiday-item{
+  display:flex;align-items:center;gap:12px;
+  background:rgba(255,255,255,.65);
+  border:1px solid var(--hairline);border-radius:16px;
+  padding:12px 14px;transition:transform .18s ease,box-shadow .18s ease;
+}
+.holiday-item:hover{transform:translateY(-1px);box-shadow:0 8px 20px rgba(0,0,0,.06)}
+.holiday-dot{width:10px;height:10px;border-radius:50%;flex:none;box-shadow:0 0 0 4px rgba(0,0,0,.03)}
+.holiday-body{flex:1;min-width:0}
+.holiday-name{font-size:14.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.holiday-date{font-size:12px;color:var(--muted);margin-top:2px}
+.holiday-days{
+  flex:none;font-size:12px;font-weight:600;color:var(--accent);
+  background:var(--accent-soft);border-radius:980px;padding:4px 10px;
+}
+.holiday-days.today{background:var(--accent);color:#fff}
+.holiday-days.past{color:var(--done);background:rgba(0,0,0,.05)}
+.holiday-loading,.holiday-error{display:flex;flex-direction:column;align-items:center;gap:12px;padding:34px 10px;color:var(--muted);font-size:13px;text-align:center}
+.spinner{width:22px;height:22px;border-radius:50%;border:2.5px solid rgba(0,113,227,.18);border-top-color:var(--accent);animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.retry-btn{
+  border:1px solid var(--hairline);background:var(--card-solid);color:var(--accent);
+  font-size:13px;font-weight:500;border-radius:980px;padding:7px 16px;cursor:pointer;transition:background .15s;
+}
+.retry-btn:hover{background:var(--accent-soft)}
+.holiday-note{margin-top:16px;font-size:11.5px;color:var(--muted);display:flex;justify-content:space-between;align-items:center}
+.cache-tag{font-size:11px;color:var(--muted);opacity:.75}
+
+/* Calendar */
+.calendar{padding:24px}
+.calendar-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
+.month-title{font-size:21px;font-weight:700;letter-spacing:-.01em}
+.nav{display:flex;gap:8px}
+.nav button{
+  width:34px;height:34px;border-radius:50%;
+  border:1px solid var(--hairline);background:rgba(255,255,255,.7);
+  cursor:pointer;font-size:17px;color:var(--text);line-height:1;
+  transition:background .15s,transform .15s;
+}
+.nav button:hover{background:var(--accent-soft);color:var(--accent)}
+.nav button:active{transform:scale(.94)}
+.weekdays,.days{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.weekdays div{text-align:center;color:var(--muted);font-size:12px;font-weight:600;padding-bottom:8px;letter-spacing:.02em}
+.day{
+  min-height:88px;border-radius:14px;padding:9px;
+  cursor:pointer;position:relative;border:1px solid transparent;
+  transition:background .15s,transform .12s;
+}
+.day:hover{background:rgba(0,0,0,.035)}
+.day:active{transform:scale(.97)}
+.day.other{opacity:.32}
+.day.selected{background:var(--accent-soft);border-color:rgba(0,113,227,.18)}
+.date{
+  display:flex;align-items:center;justify-content:center;
+  width:30px;height:30px;border-radius:50%;
+  font-size:13.5px;font-weight:500;margin-bottom:5px;
+  transition:background .15s,color .15s;
+}
+.day.today .date{background:var(--accent);color:#fff;font-weight:600;box-shadow:0 4px 12px rgba(0,113,227,.35)}
+.task-dots{display:flex;flex-direction:column;gap:3px}
+.task-preview{
+  font-size:11.5px;line-height:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  padding:2px 6px;border-radius:6px;background:rgba(0,113,227,.07);color:#1d4f8f;font-weight:500;
+}
+.task-preview.done{opacity:.5;text-decoration:line-through;background:rgba(0,0,0,.04);color:var(--muted)}
+.more{font-size:11px;color:var(--muted);margin-top:2px;padding-left:6px}
+.footer{margin-top:16px;color:var(--muted);font-size:12px;display:flex;justify-content:space-between;align-items:center}
+.footer .dot{width:6px;height:6px;border-radius:50%;background:#34c759;display:inline-block;margin-right:6px}
+
+/* Tasks */
+.side{padding:24px;display:flex;flex-direction:column}
+.selected-date{font-size:13px;color:var(--muted);margin:6px 0 16px}
+.add{display:flex;gap:8px;margin-bottom:16px}
+.add input{
+  flex:1;min-width:0;border:1px solid var(--hairline);background:rgba(255,255,255,.8);
+  border-radius:13px;padding:11px 14px;font-size:14px;outline:none;font-family:inherit;
+  transition:border .15s,box-shadow .15s;
+}
+.add input::placeholder{color:#b0b0b6}
+.add input:focus{border-color:rgba(0,113,227,.5);box-shadow:0 0 0 4px rgba(0,113,227,.12)}
+.add button{
+  border:0;background:var(--accent);color:#fff;font-size:20px;font-weight:400;
+  width:42px;height:42px;border-radius:13px;cursor:pointer;flex:none;
+  display:flex;align-items:center;justify-content:center;line-height:1;
+  transition:background .15s,transform .12s,box-shadow .2s;
+  box-shadow:0 6px 16px rgba(0,113,227,.3);
+}
+.add button:hover{background:var(--accent-strong);transform:translateY(-1px)}
+.add button:active{transform:scale(.95)}
+.tasks{display:flex;flex-direction:column;gap:9px;max-height:430px;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:rgba(0,0,0,.12) transparent}
+.task{
+  display:flex;align-items:center;gap:11px;
+  background:rgba(255,255,255,.7);border:1px solid var(--hairline);
+  border-radius:15px;padding:12px 14px;
+  transition:transform .15s,box-shadow .15s;
+}
+.task:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(0,0,0,.05)}
+.task input[type=checkbox]{
+  appearance:none;-webkit-appearance:none;
+  width:20px;height:20px;border-radius:7px;border:1.5px solid #c7c7cc;background:#fff;
+  cursor:pointer;transition:.16s;position:relative;flex:none;margin:0;
+}
+.task input[type=checkbox]:checked{border-color:var(--accent);background:var(--accent)}
+.task input[type=checkbox]:checked::after{
+  content:"";position:absolute;left:6px;top:2.5px;width:5px;height:9px;
+  border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg);
+}
+.task-text{flex:1;font-size:14.5px;word-break:break-word;line-height:1.4}
+.task.done .task-text{color:var(--done);text-decoration:line-through}
+.delete{
+  border:0;background:rgba(0,0,0,.04);color:#8e8e93;width:26px;height:26px;border-radius:50%;
+  cursor:pointer;font-size:16px;line-height:1;flex:none;
+  display:flex;align-items:center;justify-content:center;
+  opacity:0;transition:opacity .15s,background .15s,color .15s;
+}
+.task:hover .delete{opacity:1}
+.delete:hover{background:rgba(255,59,48,.12);color:var(--danger)}
+.empty{text-align:center;color:var(--muted);padding:44px 12px;font-size:13.5px}
+.empty .empty-icon{font-size:30px;display:block;margin-bottom:10px}
+
+@media(max-width:1180px){
+  .layout{grid-template-columns:minmax(0,1fr) 320px}
+  .holidays{grid-column:1 / -1}
+  .holiday-list{max-height:240px}
+}
+@media(max-width:760px){
+  .layout{grid-template-columns:1fr}
+  .header{flex-direction:column;align-items:flex-start}
+  .app{width:calc(100% - 24px);padding:26px 0 20px}
+  .header-left h1{font-size:27px}
+  .day{min-height:64px;padding:6px}
+  .tasks{max-height:320px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div class="header-left">
+      <h1>日历 Todo</h1>
+      <p id="todaySub"></p>
+    </div>
+    <button class="today-btn" id="todayBtn">回到今天</button>
+  </div>
+
+  <div class="layout">
+    <aside class="card card-pad holidays">
+      <div class="card-title">节日倒计时 <span class="cache-tag" id="holidayCacheTag"></span></div>
+      <div class="card-sub">接下来还有哪些特别的日子</div>
+      <div class="holiday-list" id="holidayList"></div>
+      <div class="holiday-note">
+        <span>数据来自节假日接口</span>
+        <button class="retry-btn" id="holidayRetry" style="display:none">重试</button>
+      </div>
+    </aside>
+
+    <section class="card calendar">
+      <div class="calendar-top">
+        <div class="month-title" id="monthTitle"></div>
+        <div class="nav">
+          <button id="prevBtn" aria-label="上个月">‹</button>
+          <button id="nextBtn" aria-label="下个月">›</button>
+        </div>
+      </div>
+      <div class="weekdays">
+        <div>日</div><div>一</div><div>二</div><div>三</div>
+        <div>四</div><div>五</div><div>六</div>
+      </div>
+      <div class="days" id="days"></div>
+      <div class="footer">
+        <span>任务自动保存在当前浏览器</span>
+        <span><i class="dot"></i>已保存</span>
+      </div>
+    </section>
+
+    <aside class="card side">
+      <div class="card-title">当天任务</div>
+      <div class="selected-date" id="selectedDate"></div>
+      <div class="add">
+        <input id="taskInput" placeholder="添加一个任务..." maxlength="100">
+        <button id="addBtn" title="添加任务">＋</button>
+      </div>
+      <div class="tasks" id="tasks"></div>
+    </aside>
+  </div>
+</div>
+
+<script src="calendar.js"></script>
+</body>
+</html>
