@@ -4,192 +4,293 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>日历 · Todo</title>
-<style>
-*{box-sizing:border-box;margin:0;padding:0}
+<style>*{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg-top:#f6f7fb;
-  --bg-bottom:#e9ecf3;
-  --card:rgba(255,255,255,.8);
-  --card-solid:#fff;
-  --text:#1d1d1f;
-  --muted:#6e6e73;
-  --hairline:rgba(0,0,0,.06);
-  --accent:#0071e3;
-  --accent-soft:rgba(0,113,227,.1);
-  --accent-strong:#0a5dc2;
-  --danger:#ff3b30;
-  --done:#a1a1a6;
-  --shadow-card:0 1px 2px rgba(0,0,0,.04),0 18px 44px rgba(31,38,135,.08);
+  --bg:#f8f9fa;
+  --surface:#fff;
+  --border:#dadce0;
+  --border-light:#e8eaed;
+  --text:#3c4043;
+  --muted:#5f6368;
+  --accent:#1a73e8;
+  --accent-strong:#1765cc;
+  --accent-soft:rgba(26,115,232,.1);
+  --danger:#d93025;
+  --done:#9aa0a6;
+  --shadow:0 1px 2px rgba(60,64,67,.12),0 2px 8px rgba(60,64,67,.1);
 }
 html,body{height:100%}
 body{
   min-height:100vh;
-  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
-  background:linear-gradient(180deg,var(--bg-top),var(--bg-bottom));
+  font-family:Roboto,"Google Sans","Segoe UI",-apple-system,BlinkMacSystemFont,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+  background:var(--bg);
   color:var(--text);
   -webkit-font-smoothing:antialiased;
   text-rendering:optimizeLegibility;
 }
-body::before,body::after{
-  content:"";position:fixed;border-radius:50%;filter:blur(90px);z-index:-1;pointer-events:none;
-}
-body::before{
-  width:520px;height:520px;top:-160px;left:-120px;
-  background:radial-gradient(circle,rgba(0,113,227,.18),transparent 65%);
-}
-body::after{
-  width:560px;height:560px;bottom:-200px;right:-140px;
-  background:radial-gradient(circle,rgba(175,82,222,.14),transparent 65%);
-}
-.app{width:min(1400px,calc(100% - 40px));margin:0 auto;padding:44px 0 36px}
-.header{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;margin-bottom:26px}
-.header-left h1{font-size:34px;font-weight:700;letter-spacing:-.022em}
-.header-left p{margin-top:6px;color:var(--muted);font-size:14.5px}
+.app{width:min(1400px,calc(100% - 40px));margin:0 auto;padding:24px 0 40px}
+.header{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:20px;padding:0 6px}
+.header-left h1{font-size:22px;font-weight:400;letter-spacing:-.01em}
+.header-left p{margin-top:2px;color:var(--muted);font-size:12.5px}
 .today-btn{
-  border:1px solid var(--hairline);background:var(--card);
-  backdrop-filter:blur(20px) saturate(1.4);-webkit-backdrop-filter:blur(20px) saturate(1.4);
-  color:var(--accent);font-size:14px;font-weight:500;
-  border-radius:980px;padding:9px 20px;cursor:pointer;
-  box-shadow:0 4px 14px rgba(0,0,0,.05);
-  transition:background .18s ease,transform .18s ease,box-shadow .18s ease;
+  border:1px solid var(--border);background:var(--surface);color:var(--text);
+  font-size:13.5px;font-weight:500;border-radius:8px;padding:8px 20px;cursor:pointer;
+  box-shadow:none;transition:background .15s,box-shadow .15s;
 }
-.today-btn:hover{background:var(--accent-soft);transform:translateY(-1px);box-shadow:0 6px 18px rgba(0,0,0,.08)}
-.today-btn:active{transform:translateY(0)}
+.today-btn:hover{background:#f1f3f4}
+.today-btn:active{box-shadow:var(--shadow)}
 .layout{display:grid;grid-template-columns:280px minmax(0,1fr) 330px;gap:18px;align-items:start}
-.card{
-  background:var(--card);
-  backdrop-filter:blur(22px) saturate(1.5);-webkit-backdrop-filter:blur(22px) saturate(1.5);
-  border:1px solid rgba(255,255,255,.65);
-  border-radius:24px;
-  box-shadow:var(--shadow-card);
-}
-.card-pad{padding:24px}
-.card-title{font-size:15px;font-weight:650;letter-spacing:.01em;display:flex;align-items:center;gap:8px}
-.card-sub{font-size:12.5px;color:var(--muted);margin-top:3px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:16px;box-shadow:none}
+.card-pad{padding:20px}
+.card-title{font-size:15px;font-weight:500;letter-spacing:0;display:flex;align-items:center;gap:8px}
+.card-sub{font-size:12px;color:var(--muted);margin-top:3px}
 
 /* Holidays */
 .holidays .card-title{justify-content:space-between}
-.holiday-list{display:flex;flex-direction:column;gap:10px;margin-top:18px;max-height:520px;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none}
-.holiday-list::-webkit-scrollbar{display:none}
+.holiday-list{display:flex;flex-direction:column;gap:2px;margin-top:14px;max-height:520px;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
 .holiday-item{
   display:flex;align-items:center;gap:12px;
-  background:rgba(255,255,255,.65);
-  border:1px solid var(--hairline);border-radius:16px;
-  padding:12px 14px;transition:transform .18s ease,box-shadow .18s ease;
+  background:transparent;border:none;border-radius:10px;
+  padding:9px 12px;transition:background .12s;
 }
-.holiday-item:hover{transform:translateY(-1px);box-shadow:0 8px 20px rgba(0,0,0,.06)}
-.holiday-dot{width:10px;height:10px;border-radius:50%;flex:none;box-shadow:0 0 0 4px rgba(0,0,0,.03)}
+.holiday-item:hover{background:#f1f3f4}
+.holiday-dot{width:10px;height:10px;border-radius:50%;flex:none}
 .holiday-body{flex:1;min-width:0}
-.holiday-name{font-size:14.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.holiday-date{font-size:12px;color:var(--muted);margin-top:2px}
+.holiday-name{font-size:13.5px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.holiday-date{font-size:11.5px;color:var(--muted);margin-top:1px}
 .holiday-days{
-  flex:none;font-size:12px;font-weight:600;color:var(--accent);
-  background:var(--accent-soft);border-radius:980px;padding:4px 10px;
+  flex:none;font-size:11.5px;font-weight:500;color:var(--muted);
+  background:#f1f3f4;border-radius:8px;padding:4px 10px;
 }
 .holiday-days.today{background:var(--accent);color:#fff}
-.holiday-days.past{color:var(--done);background:rgba(0,0,0,.05)}
+.holiday-days.past{color:var(--done);background:transparent}
 .holiday-loading,.holiday-error{display:flex;flex-direction:column;align-items:center;gap:12px;padding:34px 10px;color:var(--muted);font-size:13px;text-align:center}
-.spinner{width:22px;height:22px;border-radius:50%;border:2.5px solid rgba(0,113,227,.18);border-top-color:var(--accent);animation:spin .8s linear infinite}
+.spinner{width:22px;height:22px;border-radius:50%;border:2.5px solid rgba(26,115,232,.18);border-top-color:var(--accent);animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 .retry-btn{
-  border:1px solid var(--hairline);background:var(--card-solid);color:var(--accent);
-  font-size:13px;font-weight:500;border-radius:980px;padding:7px 16px;cursor:pointer;transition:background .15s;
+  border:1px solid var(--border);background:var(--surface);color:var(--accent);
+  font-size:13px;font-weight:500;border-radius:8px;padding:7px 16px;cursor:pointer;transition:background .15s;
 }
 .retry-btn:hover{background:var(--accent-soft)}
 .holiday-note{margin-top:16px;font-size:11.5px;color:var(--muted);display:flex;justify-content:space-between;align-items:center}
 .cache-tag{font-size:11px;color:var(--muted);opacity:.75}
 
-/* Calendar */
-.calendar{padding:24px}
-.calendar-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
-.month-title{font-size:21px;font-weight:700;letter-spacing:-.01em}
-.nav{display:flex;gap:8px}
+/* Calendar: Google-style grid */
+.calendar{padding:14px 14px 10px}
+.calendar-top{display:flex;justify-content:space-between;align-items:center;margin:2px 4px 10px}
+.month-title{font-size:22px;font-weight:400;letter-spacing:-.01em}
+.nav{display:flex;gap:4px}
 .nav button{
-  width:34px;height:34px;border-radius:50%;
-  border:1px solid var(--hairline);background:rgba(255,255,255,.7);
-  cursor:pointer;font-size:17px;color:var(--text);line-height:1;
-  transition:background .15s,transform .15s;
+  width:32px;height:32px;border-radius:50%;
+  border:none;background:transparent;color:var(--muted);
+  cursor:pointer;font-size:18px;line-height:1;font-weight:400;
+  transition:background .12s,color .12s;
 }
-.nav button:hover{background:var(--accent-soft);color:var(--accent)}
-.nav button:active{transform:scale(.94)}
-.weekdays,.days{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
-.weekdays div{text-align:center;color:var(--muted);font-size:12px;font-weight:600;padding-bottom:8px;letter-spacing:.02em}
+.nav button:hover{background:#f1f3f4;color:var(--text)}
+.nav button:active{background:#e8eaed}
+.weekdays,.days{display:grid;grid-template-columns:repeat(7,1fr);gap:0}
+.weekdays{border-bottom:1px solid var(--border)}
+.weekdays div{
+  text-align:left;color:var(--muted);font-size:11px;font-weight:500;
+  letter-spacing:.04em;padding:6px 12px 10px;
+}
 .day{
-  min-height:88px;border-radius:14px;padding:9px;
-  cursor:pointer;position:relative;border:1px solid transparent;
-  transition:background .15s,transform .12s;
+  min-height:104px;padding:7px 9px;
+  cursor:pointer;position:relative;
+  border:none;
+  border-top:1px solid var(--border-light);
+  border-left:1px solid var(--border-light);
+  border-radius:0;
+  transition:background .1s;
 }
-.day:hover{background:rgba(0,0,0,.035)}
-.day:active{transform:scale(.97)}
-.day.other{opacity:.32}
-.day.selected{background:var(--accent-soft);border-color:rgba(0,113,227,.18)}
+.day:nth-child(7n+1){border-left:none}
+.day:nth-child(-n+7){border-top:none}
+.day:hover{background:#f8f9fa}
+.day:active{background:#f1f3f4}
+.day.other{opacity:.38}
+.day.selected{background:#e8f0fe}
+.day.selected.other{background:#eef4fe}
 .date{
   display:flex;align-items:center;justify-content:center;
-  width:30px;height:30px;border-radius:50%;
-  font-size:13.5px;font-weight:500;margin-bottom:5px;
-  transition:background .15s,color .15s;
+  width:26px;height:26px;border-radius:50%;
+  font-size:12px;font-weight:400;margin-bottom:6px;
+  transition:background .12s,color .12s;
 }
-.day.today .date{background:var(--accent);color:#fff;font-weight:600;box-shadow:0 4px 12px rgba(0,113,227,.35)}
-.task-dots{display:flex;flex-direction:column;gap:3px}
+.day.today .date{background:var(--accent);color:#fff;font-weight:500}
+.day.selected .date{background:var(--accent);color:#fff;font-weight:500}
+.task-dots{display:flex;flex-direction:column;gap:2px;padding-right:2px}
 .task-preview{
-  font-size:11.5px;line-height:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-  padding:2px 6px;border-radius:6px;background:rgba(0,113,227,.07);color:#1d4f8f;font-weight:500;
+  font-size:11.5px;line-height:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  color:#3c4043;font-weight:400;
+  padding:1px 5px 1px 4px;border-radius:4px;
+  background:rgba(26,115,232,.13);
+  border-left:3px solid var(--accent);
 }
-.task-preview.done{opacity:.5;text-decoration:line-through;background:rgba(0,0,0,.04);color:var(--muted)}
-.more{font-size:11px;color:var(--muted);margin-top:2px;padding-left:6px}
-.footer{margin-top:16px;color:var(--muted);font-size:12px;display:flex;justify-content:space-between;align-items:center}
-.footer .dot{width:6px;height:6px;border-radius:50%;background:#34c759;display:inline-block;margin-right:6px}
+.task-preview.done{opacity:.45;text-decoration:line-through;background:#f1f3f4;border-left-color:#dadce0}
+.more{font-size:11px;color:var(--muted);margin-top:3px;padding-left:4px}
+.footer{margin-top:14px;color:var(--muted);font-size:11.5px;display:flex;justify-content:space-between;align-items:center;padding:0 4px 4px}
+.footer .dot{width:6px;height:6px;border-radius:50%;background:#188038;display:inline-block;margin-right:6px}
 
-/* Tasks */
-.side{padding:24px;display:flex;flex-direction:column}
-.selected-date{font-size:13px;color:var(--muted);margin:6px 0 16px}
-.add{display:flex;gap:8px;margin-bottom:16px}
+/* Side task panel */
+.side{padding:20px;display:flex;flex-direction:column}
+.selected-date{font-size:12.5px;color:var(--muted);margin:6px 0 16px}
+.add{display:flex;gap:8px;margin-bottom:14px}
 .add input{
-  flex:1;min-width:0;border:1px solid var(--hairline);background:rgba(255,255,255,.8);
-  border-radius:13px;padding:11px 14px;font-size:14px;outline:none;font-family:inherit;
-  transition:border .15s,box-shadow .15s;
+  flex:1;min-width:0;border:none;background:#f1f3f4;
+  border-radius:8px;padding:10px 14px;font-size:14px;outline:none;font-family:inherit;
+  transition:background .15s,box-shadow .15s;
 }
-.add input::placeholder{color:#b0b0b6}
-.add input:focus{border-color:rgba(0,113,227,.5);box-shadow:0 0 0 4px rgba(0,113,227,.12)}
+.add input::placeholder{color:#80868b}
+.add input:focus{background:#fff;box-shadow:0 0 0 2px var(--accent)}
 .add button{
   border:0;background:var(--accent);color:#fff;font-size:20px;font-weight:400;
-  width:42px;height:42px;border-radius:13px;cursor:pointer;flex:none;
+  width:40px;height:40px;border-radius:8px;cursor:pointer;flex:none;
   display:flex;align-items:center;justify-content:center;line-height:1;
-  transition:background .15s,transform .12s,box-shadow .2s;
-  box-shadow:0 6px 16px rgba(0,113,227,.3);
+  transition:background .15s,transform .12s;
 }
-.add button:hover{background:var(--accent-strong);transform:translateY(-1px)}
-.add button:active{transform:scale(.95)}
-.tasks{display:flex;flex-direction:column;gap:9px;max-height:430px;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:rgba(0,0,0,.12) transparent}
+.add button:hover{background:var(--accent-strong)}
+.add button:active{transform:scale(.97)}
+.add .icon-btn{background:#f1f3f4;color:var(--accent);box-shadow:none}
+.add .icon-btn:hover{background:var(--accent-soft)}
+.add .icon-btn.toggled{background:var(--accent);color:#fff}
+.tasks{display:flex;flex-direction:column;gap:8px;max-height:430px;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
 .task{
-  display:flex;align-items:center;gap:11px;
-  background:rgba(255,255,255,.7);border:1px solid var(--hairline);
-  border-radius:15px;padding:12px 14px;
-  transition:transform .15s,box-shadow .15s;
+  display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;
+  align-items:start;gap:11px;
+  background:var(--surface);border:1px solid var(--border-light);
+  border-left:3px solid transparent;
+  border-radius:10px;padding:11px 13px;
+  transition:box-shadow .15s,background .15s;
 }
-.task:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(0,0,0,.05)}
+.task:hover{background:#fff;box-shadow:var(--shadow)}
 .task input[type=checkbox]{
   appearance:none;-webkit-appearance:none;
-  width:20px;height:20px;border-radius:7px;border:1.5px solid #c7c7cc;background:#fff;
+  width:19px;height:19px;border-radius:6px;border:1.5px solid #9aa0a6;background:#fff;
   cursor:pointer;transition:.16s;position:relative;flex:none;margin:0;
 }
+.task input[type=checkbox]:hover{border-color:var(--accent)}
 .task input[type=checkbox]:checked{border-color:var(--accent);background:var(--accent)}
 .task input[type=checkbox]:checked::after{
-  content:"";position:absolute;left:6px;top:2.5px;width:5px;height:9px;
+  content:"";position:absolute;left:5.5px;top:2px;width:5px;height:9px;
   border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg);
 }
-.task-text{flex:1;font-size:14.5px;word-break:break-word;line-height:1.4}
+.task-main{flex:1;min-width:0}
+.task-text{font-size:14px;word-break:break-word;line-height:1.4}
 .task.done .task-text{color:var(--done);text-decoration:line-through}
+.task-meta{
+  display:flex;align-items:center;gap:5px;
+  margin-top:3px;font-size:11.5px;color:var(--accent);font-weight:500;
+}
+.task.done .task-meta{color:var(--done);opacity:.8}
+.task-note-preview{
+  display:flex;align-items:flex-start;gap:6px;
+  margin-top:6px;font-size:12px;line-height:1.5;color:var(--muted);
+  background:#f1f3f4;border-radius:8px;padding:6px 9px;
+  word-break:break-word;white-space:pre-wrap;
+}
+.task-note-preview svg{flex:none;margin-top:2px;color:var(--done)}
+.note-btn{
+  border:0;background:transparent;color:#80868b;width:26px;height:26px;border-radius:50%;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;flex:none;line-height:1;
+  opacity:0;transition:opacity .15s,background .15s,color .15s;
+  padding:0;
+}
+.task:hover .note-btn{opacity:1}
+.note-btn:hover{background:rgba(26,115,232,.12);color:var(--accent)}
+.note-btn.has-note{opacity:1;color:var(--accent)}
+.task-note-editor{
+  grid-column:1 / -1;display:flex;flex-direction:column;gap:8px;
+  border-top:1px dashed var(--border-light);padding-top:10px;margin-top:2px;
+}
+.task-note-editor textarea{
+  width:100%;min-height:64px;resize:vertical;
+  border:1px solid var(--border);border-radius:8px;background:#fff;
+  padding:9px 11px;font-size:12.5px;line-height:1.5;font-family:inherit;color:var(--text);
+  outline:none;transition:border .15s,box-shadow .15s;
+}
+.task-note-editor textarea:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26,115,232,.2)}
+.task-note-actions{display:flex;justify-content:flex-end;gap:8px}
+.task-note-actions button{
+  border:0;border-radius:8px;padding:6px 14px;font-size:12.5px;font-weight:500;
+  cursor:pointer;font-family:inherit;transition:background .15s;
+}
+.note-save{background:var(--accent);color:#fff}
+.note-save:hover{background:var(--accent-strong)}
+.note-plain{background:transparent;color:var(--muted)}
+.note-plain:hover{background:#f1f3f4}
+.note-del{color:var(--danger)}
+.note-del:hover{background:rgba(217,48,37,.1)}
 .delete{
-  border:0;background:rgba(0,0,0,.04);color:#8e8e93;width:26px;height:26px;border-radius:50%;
+  border:0;background:transparent;color:#80868b;width:28px;height:28px;border-radius:50%;
   cursor:pointer;font-size:16px;line-height:1;flex:none;
   display:flex;align-items:center;justify-content:center;
   opacity:0;transition:opacity .15s,background .15s,color .15s;
 }
 .task:hover .delete{opacity:1}
-.delete:hover{background:rgba(255,59,48,.12);color:var(--danger)}
+.delete:hover{background:rgba(217,48,37,.12);color:var(--danger)}
 .empty{text-align:center;color:var(--muted);padding:44px 12px;font-size:13.5px}
 .empty .empty-icon{font-size:30px;display:block;margin-bottom:10px}
+
+/* Range panel: compact Google-style card */
+.range{
+  margin:-2px 0 16px;border-radius:12px;padding:14px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  box-shadow:var(--shadow);
+  display:flex;flex-direction:column;gap:12px;
+  animation:rangeIn .2s ease;
+}
+@keyframes rangeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+.range-head{display:flex;align-items:center;gap:10px}
+.range-head-icon{
+  width:34px;height:34px;border-radius:50%;flex:none;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--accent-soft);font-size:16px;
+}
+.range-head-title{font-size:14px;font-weight:500}
+.range-head-sub{font-size:11.5px;color:var(--muted);margin-top:2px}
+.range-dates{display:flex;align-items:flex-end;gap:8px}
+.date-field{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px}
+.date-field>span{font-size:11px;font-weight:500;color:var(--muted);padding-left:2px}
+.range input[type=date]{
+  width:100%;min-width:0;
+  border:1px solid var(--border);background:#fff;
+  border-radius:8px;padding:7px 9px;font-size:12.5px;font-family:inherit;color:var(--text);
+  outline:none;cursor:pointer;transition:border .15s,box-shadow .15s;
+}
+.range input[type=date]:hover{border-color:#bdc1c6}
+.range input[type=date]:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(26,115,232,.25)}
+.date-arrow{color:var(--muted);font-size:16px;font-weight:500;flex:none;padding-bottom:8px;line-height:1}
+.range-opts{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.workdays-switch{display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none}
+.workdays-switch input{position:absolute;opacity:0;pointer-events:none}
+.switch-track{
+  width:36px;height:20px;border-radius:999px;flex:none;position:relative;
+  background:#bdc1c6;transition:background .18s;
+}
+.switch-thumb{
+  position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;
+  background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:transform .18s;
+}
+.workdays-switch input:checked + .switch-track{background:var(--accent)}
+.workdays-switch input:checked + .switch-track .switch-thumb{transform:translateX(16px)}
+.switch-label{font-size:12.5px;font-weight:500;color:var(--text)}
+.range-add-btn{
+  border:0;background:var(--accent);color:#fff;
+  font-size:12.5px;font-weight:500;letter-spacing:.01em;
+  border-radius:8px;padding:9px 14px;cursor:pointer;flex:none;
+  display:flex;align-items:center;gap:6px;
+  box-shadow:none;
+  transition:background .15s,transform .12s;
+}
+.range-add-btn:hover{background:var(--accent-strong)}
+.range-add-btn:active{transform:scale(.97)}
+.range-hint{
+  font-size:12px;color:var(--muted);min-height:0;line-height:1.5;
+  background:#f1f3f4;border-radius:8px;padding:7px 10px;
+}
+.range-hint:empty{display:none}
+.range-hint.error{color:var(--danger);background:rgba(217,48,37,.08)}
 
 @media(max-width:1180px){
   .layout{grid-template-columns:minmax(0,1fr) 320px}
@@ -199,12 +300,11 @@ body::after{
 @media(max-width:760px){
   .layout{grid-template-columns:1fr}
   .header{flex-direction:column;align-items:flex-start}
-  .app{width:calc(100% - 24px);padding:26px 0 20px}
-  .header-left h1{font-size:27px}
-  .day{min-height:64px;padding:6px}
+  .app{width:calc(100% - 24px);padding:18px 0 16px}
+  .header-left h1{font-size:20px}
+  .day{min-height:64px;padding:5px}
   .tasks{max-height:320px}
-}
-</style>
+}</style>
 </head>
 <body>
 <div class="app">
@@ -252,6 +352,39 @@ body::after{
       <div class="add">
         <input id="taskInput" placeholder="添加一个任务..." maxlength="100">
         <button id="addBtn" title="添加任务">＋</button>
+        <button id="rangeToggle" class="icon-btn" title="添加区间任务">⧉</button>
+      </div>
+      <div class="range" id="rangePanel" hidden>
+        <div class="range-head">
+          <span class="range-head-icon">🔁</span>
+          <div class="range-head-txt">
+            <div class="range-head-title">新建区间任务</div>
+            <div class="range-head-sub">一次安排到多天，可只挑工作日</div>
+          </div>
+        </div>
+        <div class="range-dates">
+          <label class="date-field">
+            <span>开始日期</span>
+            <input type="date" id="rangeStart">
+          </label>
+          <span class="date-arrow">→</span>
+          <label class="date-field">
+            <span>结束日期</span>
+            <input type="date" id="rangeEnd">
+          </label>
+        </div>
+        <div class="range-opts">
+          <label class="workdays-switch" title="只安排到周一至周五，周末自动跳过">
+            <input type="checkbox" id="workdaysOnly" checked>
+            <span class="switch-track"><span class="switch-thumb"></span></span>
+            <span class="switch-label">仅工作日</span>
+          </label>
+          <button class="range-add-btn" id="rangeAddBtn">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+            添加区间
+          </button>
+        </div>
+        <div class="range-hint" id="rangeHint"></div>
       </div>
       <div class="tasks" id="tasks"></div>
     </aside>

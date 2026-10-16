@@ -1,16 +1,13 @@
 {
   "manifest_version": 3,
   "name": "网站部-小工具",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "网站部-小工具，支持WordPress、Shopify和图片尺寸检查",
-  "permissions": ["activeTab", "storage", "downloads", "debugger"],
+  "permissions": ["activeTab", "storage", "downloads", "debugger", "tabs"],
   "host_permissions": ["http://*/*", "https://*/*"],
   "action": {
     "default_popup": "index.html",
     "default_icon": "icons/logo.png"
-  },
-  "chrome_url_overrides": {
-    "newtab": "calendar.html"
   },
   "icons": {
     "48": "icons/logo.png",
