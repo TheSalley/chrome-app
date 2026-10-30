@@ -418,20 +418,28 @@ function getNoIndexStatus() {
   };
 }
 
-// 检查隐藏板块（同时包含 elementor-hidden-desktop 与 elementor-hidden-mobile 的板块）
+// 扫描全页面所有 DOM 元素，找出同时包含 elementor-hidden-desktop 与 elementor-hidden-mobile class 的隐藏元素
 function getHiddenSections() {
   const sections = Array.from(
-    document.querySelectorAll('.elementor-section, [data-element_type="container"]')
+    document.querySelectorAll('*')
   );
   const hidden = sections.filter((el) => {
-    const cls = el.className || "";
+    const cls = (el.className && typeof el.className === "string") ? el.className : "";
     return (
       cls.includes("elementor-hidden-desktop") &&
       cls.includes("elementor-hidden-mobile")
     );
   });
-  // 只返回模块 ID，便于在 Elementor 编辑器中定位
-  return hidden.map((el) => el.getAttribute("data-id") || "");
+  // 返回元素的标识描述：tag + #id + 相关 class
+  return hidden.map((el) => {
+    const parts = [el.tagName.toLowerCase()];
+    const id = el.getAttribute("id");
+    if (id) parts.push("#" + id);
+    const cls = (el.className && typeof el.className === "string") ? el.className : "";
+    const meaningful = cls.split(/\s+/).filter((c) => c && !c.startsWith("elementor-hidden-"));
+    if (meaningful.length) parts.push("." + meaningful.slice(0, 3).join("."));
+    return parts.join("");
+  });
 }
 
 // ===== 隐藏板块页面标记（强制显示 + 黑色蒙层） =====
@@ -461,9 +469,9 @@ function clearHiddenSectionMarks() {
 // 查找隐藏板块（同时包含 desktop 与 mobile 隐藏 class）
 function findHiddenSectionEls() {
   return Array.from(
-    document.querySelectorAll('.elementor-section, [data-element_type="container"]')
+    document.querySelectorAll('*')
   ).filter((el) => {
-    const cls = typeof el.className === "string" ? el.className : "";
+    const cls = (el.className && typeof el.className === "string") ? el.className : "";
     return (
       cls.includes("elementor-hidden-desktop") &&
       cls.includes("elementor-hidden-mobile")
@@ -499,8 +507,8 @@ function markHiddenSections() {
       "pointer-events:none;border:2px dashed #ef4444;box-sizing:border-box;";
 
     const label = document.createElement("span");
-    const moduleId = el.getAttribute("data-id") || "";
-    label.textContent = "隐藏板块" + (moduleId ? " " + moduleId : "");
+    const tagName = el.tagName.toLowerCase(); const elId = el.getAttribute("id");
+    label.textContent = "隐藏元素 " + tagName + (elId ? "#" + elId : "");
     label.style.cssText =
       "color:#fff;font-size:13px;font-weight:700;" +
       "background:rgba(220,38,38,0.85);padding:4px 10px;border-radius:6px;" +
@@ -512,17 +520,100 @@ function markHiddenSections() {
   hiddenMarkActive = hidden.length > 0;
   return hidden.length;
 }
+// ===== H1 标签统计与页面标注 =====
+let h1MarkActive = false;
+
+// 清除 H1 标注
+function clearH1Marks() {
+  if (!h1MarkActive) return 0;
+  const badges = document.querySelectorAll(".wp-tools-h1-badge");
+  let cleared = 0;
+  badges.forEach((badge) => {
+    const el = badge.parentElement;
+    let orig = {};
+    try {
+      orig = badge.dataset.orig ? JSON.parse(badge.dataset.orig) : {};
+    } catch (_) {
+      orig = { position: badge.dataset.origPos };
+    }
+    if (el) {
+      if (orig.position !== undefined) el.style.position = orig.position;
+      if (orig.outline !== undefined) el.style.outline = orig.outline;
+      if (orig.outlineOffset !== undefined) el.style.outlineOffset = orig.outlineOffset;
+    }
+    badge.remove();
+    cleared++;
+  });
+  h1MarkActive = false;
+  return cleared;
+}
+
+// 统计页面 H1 标签信息（数量 + 文本 + 定位描述）
+function getH1Info() {
+  const h1s = Array.from(document.querySelectorAll("h1"));
+  return {
+    count: h1s.length,
+    items: h1s.map((el, index) => {
+      const text = (el.textContent || "").replace(/\s+/g, " ").trim().slice(0, 80);
+      const elId = el.getAttribute("id");
+      const cls = typeof el.className === "string" ? el.className.trim() : "";
+      const meaningful = cls.split(/\s+/).filter((c) => c && !c.startsWith("elementor-hidden-"));
+      const clsDesc = meaningful.length ? "." + meaningful.slice(0, 3).join(".") : "";
+      return {
+        index: index + 1,
+        text,
+        desc: "h1" + (elId ? "#" + elId : "") + clsDesc,
+      };
+    }),
+  };
+}
+
+// 在每个 H1 上添加醒目标注（橙色虚线高亮框 + 大号角标）
+function markH1Tags() {
+  clearH1Marks();
+  const h1s = Array.from(document.querySelectorAll("h1"));
+  h1s.forEach((el, index) => {
+    const badge = document.createElement("div");
+    badge.className = "wp-tools-h1-badge";
+    badge.dataset.orig = JSON.stringify({
+      position: el.style.position,
+      outline: el.style.outline,
+      outlineOffset: el.style.outlineOffset,
+    });
+    if (!el.style.position || el.style.position === "static") {
+      el.style.position = "relative";
+    }
+    el.style.setProperty("outline", "3px dashed #ff7a00", "important");
+    el.style.setProperty("outline-offset", "3px", "important");
+
+    badge.style.cssText =
+      "position:absolute;top:4px;right:4px;z-index:2147483647;" +
+      "background:#ff6a00;color:#fff;font-size:13px;font-weight:800;" +
+      "padding:5px 12px;border-radius:8px;border:2px solid #fff;" +
+      "letter-spacing:0.5px;line-height:1.2;box-shadow:0 3px 10px rgba(0,0,0,0.45);" +
+      "pointer-events:none;";
+    badge.textContent = "H1 #" + (index + 1);
+    el.appendChild(badge);
+  });
+  h1MarkActive = h1s.length > 0;
+  return h1s.length;
+}
+
 
 function checkWpPage(mark = true) {
   let marked = 0;
+  let h1Marked = 0;
   if (mark) {
     marked = markHiddenSections();
+    h1Marked = markH1Tags();
   }
   return {
     ok: true,
     noIndex: getNoIndexStatus(),
     hiddenSections: getHiddenSections(),
     marked,
+    h1: getH1Info(),
+    h1Marked,
   };
 }
 
@@ -552,8 +643,20 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     sendResponse(checkWpPage(message.mark !== false));
     return false;
   }
+  if (message.action === "checkWp") {
+    sendResponse(checkWpPage(message.mark !== false));
+    return false;
+  }
+  if (message.action === "checkH1") {
+    sendResponse({ ok: true, h1: getH1Info(), h1Marked: markH1Tags() });
+    return false;
+  }
   if (message.action === "clearHiddenMarks") {
     sendResponse({ ok: true, cleared: clearHiddenSectionMarks() });
+    return false;
+  }
+  if (message.action === "clearH1Marks") {
+    sendResponse({ ok: true, cleared: clearH1Marks() });
     return false;
   }
   if (message.action === "fillForm") {

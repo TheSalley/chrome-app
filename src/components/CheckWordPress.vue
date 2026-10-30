@@ -92,7 +92,7 @@
             <svg class="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line>
             </svg>
-            已在页面上标出隐藏板块（黑色蒙层），点击上方"清除标记"恢复
+            已在页面上标出隐藏元素（黑色蒙层），点击上方"清除标记"恢复
           </p>
           <p v-if="!hiddenIds.length" class="text-xs text-gray-400 flex items-center gap-1.5">
             <svg class="h-3.5 w-3.5 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -102,20 +102,83 @@
           </p>
           <div v-else class="flex flex-wrap gap-1.5">
             <span
-              v-for="(id, idx) in hiddenIds"
+              v-for="(item, idx) in hiddenIds"
               :key="idx"
               class="rounded-lg bg-amber-50 border border-amber-200 px-2 py-1 text-xs font-mono text-amber-800"
-              :title="'模块 ID: ' + id"
-            >{{ id }}</span>
+              :title="'隐藏元素: ' + item"
+            >{{ item }}</span>
           </div>
         </div>
       </div>
     </div>
+    <!-- H1 标签（独立自动检查） -->
+    <div class="rounded-xl border border-gray-200 bg-white p-3 shadow-sm">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+          <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 7v10"></path><path d="M4 7h7"></path><path d="M4 17h7"></path><path d="M15 7v10"></path><path d="M15 7h4"></path><path d="M15 12h4"></path><path d="M15 17h4"></path>
+          </svg>
+          H1 标签
+        </div>
+        <div class="flex items-center gap-2">
+          <span
+            class="rounded-full px-2.5 py-1 text-xs font-semibold inline-flex items-center gap-1"
+            :class="h1Info.count > 1 ? 'bg-amber-100 text-amber-700 border border-amber-300' : (h1Info.count === 1 ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' : 'bg-gray-100 text-gray-500 border border-gray-200')"
+          >
+            {{ h1Info.count }} 个
+          </span>
+          <button
+            v-if="h1Marked"
+            class="text-xs text-orange-600 underline cursor-pointer whitespace-nowrap"
+            @click="clearH1"
+          >
+            清除 H1 标注
+          </button>
+        </div>
+      </div>
+      <div class="mt-2">
+        <p v-if="h1Marked" class="mb-2 text-xs text-orange-600 flex items-center gap-1.5">
+          <svg class="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+          已在页面上标出 H1 位置（橙色高亮框 + 角标）
+        </p>
+        <p v-if="h1Loading" class="text-xs text-gray-400 flex items-center gap-1.5">
+          <svg class="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+          </svg>
+          正在检查 H1...
+        </p>
+        <p v-else-if="!h1Info.count" class="text-xs text-gray-400 flex items-center gap-1.5">
+          <svg class="h-3.5 w-3.5 text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+          未检测到 H1 标签
+        </p>
+        <div v-else class="space-y-1.5">
+          <div
+            v-for="item in h1Info.items"
+            :key="item.index"
+            class="rounded-lg bg-orange-50 border border-orange-200 px-2.5 py-1.5 text-xs"
+          >
+            <div class="flex items-center gap-2">
+              <span class="rounded bg-orange-600 text-white font-bold px-1.5 py-0.5 text-[10px] leading-none">H1 #{{ item.index }}</span>
+              <span class="font-mono text-orange-800">{{ item.desc }}</span>
+            </div>
+            <p class="mt-1 text-gray-600 break-words line-clamp-2" :title="item.text">{{ item.text || "(无文本)" }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </div>
+
+
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, onMounted } from "vue";
 
 const data = ref(null);
 const loading = ref(false);
@@ -124,6 +187,9 @@ const error = ref("");
 const hiddenIds = computed(() => data.value?.hiddenSections || []);
 const checkedAt = ref("");
 const marked = ref(false);
+const h1Info = ref({ count: 0, items: [] });
+const h1Marked = ref(false);
+const h1Loading = ref(false);
 
 
 async function check() {
@@ -143,6 +209,8 @@ async function check() {
       data.value = result;
       checkedAt.value = new Date().toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" });
       marked.value = (result.marked || 0) > 0;
+      h1Info.value = result.h1 || { count: 0, items: [] };
+      h1Marked.value = (result.h1Marked || 0) > 0;
     } else {
       error.value = "页面未响应，请刷新页面后重试";
     }
@@ -151,13 +219,52 @@ async function check() {
   }
   loading.value = false;
 }
+
+async function checkH1() {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tab?.id) return;
+  h1Loading.value = true;
+  try {
+    const result = await chrome.tabs.sendMessage(tab.id, { action: "checkH1" });
+    if (result?.ok) {
+      h1Info.value = result.h1 || { count: 0, items: [] };
+      h1Marked.value = (result.h1Marked || 0) > 0;
+    }
+  } catch (e) {
+    // 页面未响应：保持原状态
+  }
+  h1Loading.value = false;
+}
+
+async function clearH1() {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tab?.id) return;
+  try {
+    const result = await chrome.tabs.sendMessage(tab.id, { action: "clearH1Marks" });
+    if (result?.ok) {
+      h1Marked.value = false;
+    }
+  } catch (e) {
+    // 忽略
+  }
+}
+
+onMounted(() => {
+  checkH1();
+});
 async function clearMarks() {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!tab?.id) return;
   try {
-    const result = await chrome.tabs.sendMessage(tab.id, { action: "clearHiddenMarks" });
-    if (result?.ok) {
+    const [hideResult, h1Result] = await Promise.all([
+      chrome.tabs.sendMessage(tab.id, { action: "clearHiddenMarks" }),
+      chrome.tabs.sendMessage(tab.id, { action: "clearH1Marks" }),
+    ]);
+    if (hideResult?.ok) {
       marked.value = false;
+    }
+    if (h1Result?.ok) {
+      h1Marked.value = false;
     }
   } catch (e) {
     // 忽略：页面可能已刷新
