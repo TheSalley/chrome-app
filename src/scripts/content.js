@@ -281,7 +281,7 @@ function loadNaturalSize(src, timeout = 8000) {
 }
 
 // 统一构造图片条目（尺寸取整到 10px，状态判断用原始值）
-function buildImageItem({ src, moduleId, alt, rect, naturalWidth, naturalHeight, complete, type }) {
+function buildImageItem({ src, moduleId, alt, rect, naturalWidth, naturalHeight, type }) {
   const rawWidth = rect.width;
   const rawHeight = rect.height;
   const displayWidth = Math.max(1, Math.round(rawWidth / 10) * 10);
@@ -310,7 +310,6 @@ function buildImageItem({ src, moduleId, alt, rect, naturalWidth, naturalHeight,
     naturalWidth,
     naturalHeight,
     status,
-    complete: !!complete,
     type,
   };
 }
@@ -336,7 +335,6 @@ async function collectImageSizes() {
         rect: img.getBoundingClientRect(),
         naturalWidth: img.naturalWidth,
         naturalHeight: img.naturalHeight,
-        complete: img.complete,
         type: "img",
       })
     );
@@ -365,24 +363,17 @@ async function collectImageSizes() {
         rect: el.getBoundingClientRect(),
         naturalWidth: natural?.w || 0,
         naturalHeight: natural?.h || 0,
-        complete: !!natural,
         type: "bg",
       })
     );
   }
 
-  return { total: images.length + bgTasks.length, count: list.length, list };
+  return { total: images.length + bgTasks.length, list };
 }
 
 // 页面加载后根据开关状态自动填充（多次尝试以兼容延迟渲染的表单）
-[0, 800, 2000].forEach((delay) => {
-  setTimeout(tryFillIfEnabled, delay);
-  website();
-});
-
-[2000].forEach((delay) => {
-  setTimeout(website, delay);
-});
+[0, 800, 2000].forEach((delay) => setTimeout(tryFillIfEnabled, delay));
+setTimeout(website, 2000);
 
 // 监听页面加载，若在 Shopify 主题商店则注入按钮
 if (document.readyState === "loading") {
@@ -418,20 +409,9 @@ function getNoIndexStatus() {
   };
 }
 
-// 扫描全页面所有 DOM 元素，找出同时包含 elementor-hidden-desktop 与 elementor-hidden-mobile class 的隐藏元素
+// 返回隐藏元素的标识描述：tag + #id + 相关 class
 function getHiddenSections() {
-  const sections = Array.from(
-    document.querySelectorAll('*')
-  );
-  const hidden = sections.filter((el) => {
-    const cls = (el.className && typeof el.className === "string") ? el.className : "";
-    return (
-      cls.includes("elementor-hidden-desktop") &&
-      cls.includes("elementor-hidden-mobile")
-    );
-  });
-  // 返回元素的标识描述：tag + #id + 相关 class
-  return hidden.map((el) => {
+  return findHiddenSectionEls().map((el) => {
     const parts = [el.tagName.toLowerCase()];
     const id = el.getAttribute("id");
     if (id) parts.push("#" + id);
@@ -643,10 +623,6 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     sendResponse(checkWpPage(message.mark !== false));
     return false;
   }
-  if (message.action === "checkWp") {
-    sendResponse(checkWpPage(message.mark !== false));
-    return false;
-  }
   if (message.action === "checkH1") {
     sendResponse({ ok: true, h1: getH1Info(), h1Marked: markH1Tags() });
     return false;
@@ -657,11 +633,6 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   }
   if (message.action === "clearH1Marks") {
     sendResponse({ ok: true, cleared: clearH1Marks() });
-    return false;
-  }
-  if (message.action === "fillForm") {
-    const result = fillElementorForms();
-    sendResponse({ ok: true, filled: result.filled, error: result.error });
     return false;
   }
   if (message.action === "judgePage") {
@@ -688,13 +659,4 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     return true;
   }
   return false;
-});
-
-chrome.runtime.onMessage.addListener((msg) => {
-  if (msg.action === "download") {
-    const a = document.createElement("a");
-    a.href = msg.data;
-    a.download = "fullpage.png";
-    a.click();
-  }
 });

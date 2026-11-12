@@ -1,5 +1,15 @@
-# Vue 3 + Vite
+# 网站部-小工具
 
-This template should help get you started developing with Vue 3 in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+Chrome 扩展，提供 WordPress 页面检查、Shopify 店铺识别、图片尺寸采集与日历 Todo 新标签页。
 
-Learn more about IDE Support for Vue in the [Vue Docs Scaling up Guide](https://vuejs.org/guide/scaling-up/tooling.html#ide-support).
+## 开发
+
+- `npm run dev`：启动 Vite 开发服务器，并在 `src` 变更时自动构建。
+- `npm run build`：构建到 `dist`。
+- `npm run preview`：预览构建结果。
+
+## 加载扩展
+
+1. 执行 `npm run build`。
+2. 打开 `chrome://extensions` 并开启开发者模式。
+3. 选择“加载已解压的扩展程序”，指向 `dist` 目录。

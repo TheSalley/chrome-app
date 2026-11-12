@@ -3,7 +3,7 @@
   "name": "网站部-小工具",
   "version": "0.0.7",
   "description": "网站部-小工具，支持WordPress、Shopify和图片尺寸检查",
-  "permissions": ["activeTab", "storage", "downloads", "debugger", "tabs"],
+  "permissions": ["activeTab", "storage", "tabs"],
   "host_permissions": ["http://*/*", "https://*/*"],
   "action": {
     "default_popup": "index.html",
@@ -25,7 +25,7 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["assets/inject.js", "assets/*.js"],
+      "resources": ["assets/inject.js"],
       "matches": ["<all_urls>"]
     }
   ]

@@ -15,23 +15,19 @@
         <p><span class="text-gray-500">店铺:</span> {{ info.shop || "—" }}</p>
         <p v-if="info.theme"><span class="text-gray-500">主题:</span> {{ info.theme?.name || info.theme }} (id: {{ info.theme?.id || "—" }})</p>
         <p v-if="info.meta?.handle"><span class="text-gray-500">Handle:</span> {{ info.meta.handle }}</p>
-        <!-- <pre v-if="hasMeta" class="mt-2 p-2 bg-gray-100 rounded text-xs overflow-auto max-h-32">{{ JSON.stringify(info.meta, null, 2) }}</pre> -->
       </template>
       <template v-else>
         <p class="font-semibold text-gray-600">非 Shopify 页面</p>
-        <!-- <p v-if="info.error" class="text-gray-500 mt-1">{{ info.error }}</p> -->
       </template>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
+import { ref } from "vue";
 
 const info = ref(null);
 const loading = ref(false);
-
-const hasMeta = computed(() => info.value?.meta && Object.keys(info.value.meta).length > 0);
 
 async function detect() {
   loading.value = true;
