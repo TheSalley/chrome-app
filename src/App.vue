@@ -1,5 +1,5 @@
 <template>
-  <div class="w-[300px] h-[520px] px-[20px] py-[10px] bg-gray-50 shadow-lg">
+  <div class="app-shell">
     <Home />
   </div>
 </template>
@@ -7,4 +7,11 @@
 import Home from "@/views/Home.vue";
 </script>
 <style scoped>
+.app-shell {
+  width: 360px;
+  height: 600px;
+  overflow: hidden;
+  background: var(--app-bg);
+  color: var(--text);
+}
 </style>

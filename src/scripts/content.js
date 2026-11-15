@@ -1,19 +1,8 @@
-console.log("@@@@@content.js is injected.");
-
 // 非 Shopify 主题商店页面才注入 inject.js
 if (location.hostname !== "themes.shopify.com") {
   const script = document.createElement("script");
   script.src = chrome.runtime.getURL("assets/inject.js");
   (document.head || document.documentElement).appendChild(script);
-}
-
-// 根据开关状态在页面加载时自动填充
-function tryFillIfEnabled() {
-  chrome.storage.local.get(["switchStatus"], (result) => {
-    if (result.switchStatus === true) {
-      fillElementorForms();
-    }
-  });
 }
 
 // 在 Shopify 主题商店页面注入“真实主题网址”按钮（插到底部预览条里）
@@ -76,13 +65,45 @@ function setupShopifyThemeButton() {
   }, 150);
 }
 
-// 默认填充数据（可后续从 storage 读取）
-const defaultFormData = {
+// 填充内容从设置页读取，未设置时使用默认值。
+// 注意：content script 必须自包含，不能引用 Vite 拆分出的共享 chunk。
+const FORM_DATA_KEY = "elementorFormData";
+const DEFAULT_FORM_DATA = {
   text: "test",
-  tel: "15297614000",
-  email: "test@ehaitech.com",
+  tel: "13800138000",
+  email: "test@example.com",
   textarea: "This is test message",
 };
+
+function normalizeFormData(value) {
+  const source = value && typeof value === "object" ? value : {};
+  return {
+    text: typeof source.text === "string" ? source.text : DEFAULT_FORM_DATA.text,
+    tel: typeof source.tel === "string" ? source.tel : DEFAULT_FORM_DATA.tel,
+    email: typeof source.email === "string" ? source.email : DEFAULT_FORM_DATA.email,
+    textarea: typeof source.textarea === "string" ? source.textarea : DEFAULT_FORM_DATA.textarea,
+  };
+}
+
+let formData = { ...DEFAULT_FORM_DATA };
+
+function setFieldValue(el, value) {
+  if (!el || el.value === value) return false;
+  el.value = value;
+  el.dispatchEvent(new Event("input", { bubbles: true }));
+  el.dispatchEvent(new Event("change", { bubbles: true }));
+  return true;
+}
+
+function shouldSkipField(el) {
+  if (!el || !el.isConnected || el.disabled || el.readOnly) return true;
+  const type = (el.type || "text").toLowerCase();
+  if (["hidden", "submit", "button", "reset", "file", "password", "checkbox", "radio", "search"].includes(type)) {
+    return true;
+  }
+  // 跳过 Elementor 蜜罐/多步骤表单中当前不可见的字段，避免误触反垃圾逻辑
+  return el.getClientRects().length === 0;
+}
 
 function fillElementorForms() {
   const forms = document.querySelectorAll("form.elementor-form");
@@ -90,50 +111,53 @@ function fillElementorForms() {
   let filled = 0;
   try {
     forms.forEach((form) => {
-      const inputs = form.querySelectorAll("input:not([type=hidden]):not([type=submit]):not([type=button]), textarea");
+      const inputs = form.querySelectorAll("input, textarea");
       inputs.forEach((el) => {
+        if (shouldSkipField(el)) return;
+        if (el.value && el.value.trim()) return;
+
         if (el.name === "zendkee_captcha" || el.name === "anti_spam_captcha") {
           const group = el.closest(".elementor-field-group");
           const codeEl = group?.querySelector(".captcha_code");
-          if (codeEl) {
-            el.value = codeEl.textContent?.trim() || "";
-            filled++;
-          }
+          if (codeEl && setFieldValue(el, codeEl.textContent?.trim() || "")) filled++;
           return;
         }
+
         if (el.tagName === "TEXTAREA") {
-          el.value = defaultFormData.textarea;
-          filled++;
+          if (formData.textarea && setFieldValue(el, formData.textarea)) filled++;
           return;
         }
+
         const type = (el.type || "text").toLowerCase();
         if (type === "email") {
-          el.value = defaultFormData.email;
-          filled++;
+          if (formData.email && setFieldValue(el, formData.email)) filled++;
         } else if (type === "tel") {
-          el.value = defaultFormData.tel;
-          filled++;
-        } else if (type === "text" || type === "search") {
-          el.value = el.placeholder ? `test: ${el.placeholder}` : defaultFormData.text;
-          filled++;
+          if (formData.tel && setFieldValue(el, formData.tel)) filled++;
+        } else if (type === "text" || type === "url") {
+          if (formData.text && setFieldValue(el, formData.text)) filled++;
         }
       });
     });
     return { filled, error: null };
   } catch (err) {
-    console.log("@@@ 表单填充异常", err);
+    console.error("表单填充异常", err);
     return { filled, error: String(err) };
   }
 }
 
 function website() {
-  if (location.origin === "https://download.ehaitech.com") {
-    if (document.querySelectorAll(".layui-form-item")[3].querySelector(".layui-input-inline").innerText.length > 0) {
-      let code = document.querySelectorAll(".layui-form-item")[3].querySelector(".layui-input-inline").innerText;
+  if (location.origin !== "https://download.ehaitech.com") return;
 
-      document.querySelectorAll(".layui-form-item")[4].querySelector("input").value = code;
-      // document.querySelectorAll(".layui-form-item")[5].querySelector("button").click();
-    }
+  const items = document.querySelectorAll(".layui-form-item");
+  const codeEl = items[3]?.querySelector(".layui-input-inline");
+  const target = items[4]?.querySelector("input");
+  if (!codeEl || !target) return;
+
+  const code = (codeEl.innerText || "").trim();
+  if (code && target.value !== code) {
+    target.value = code;
+    target.dispatchEvent(new Event("input", { bubbles: true }));
+    target.dispatchEvent(new Event("change", { bubbles: true }));
   }
 }
 
@@ -163,13 +187,19 @@ function findOuterElementorBlock(img) {
 }
 
 // 解析 background-image 中的 url(...) 列表（忽略 SVG）
-function parseBackgroundUrls(bgValue) {
+function parseBackgroundUrls(bgValue, baseUrl = document.baseURI) {
   const urls = [];
   const regex = /url\(\s*(?:"([^"]*)"|'([^']*)'|([^)'"\s]+))\s*\)/g;
   let match;
   while ((match = regex.exec(bgValue))) {
-    const url = match[1] || match[2] || match[3];
-    if (url && !isSvgImage(url)) urls.push(url);
+    let url = match[1] || match[2] || match[3];
+    if (!url || url.startsWith("#")) continue;
+    try {
+      url = new URL(url, baseUrl).href;
+    } catch {
+      // 保留原始值，后续加载会自行失败
+    }
+    if (!isSvgImage(url)) urls.push(url);
   }
   return urls;
 }
@@ -182,19 +212,26 @@ const MAX_IMAGES = 500;
 // 可覆盖 Elementor post-*.css 等外部样式表生成的背景图。
 function findBackgroundTasks() {
   const tasks = [];
-  const seenUrls = new Set();
+  // 同一元素 + 同一 URL 只保留一次（样式表扫描与内联样式兜底会重复命中）
+  const seenByElement = new WeakMap();
 
   const tryAdd = (el, urls) => {
     if (tasks.length >= MAX_IMAGES) return;
-    // 同一元素自身与伪元素重复的 url 只算一次；不同元素可用同一背景图（各自保留 moduleId）
+    let seen = seenByElement.get(el);
+    if (!seen) {
+      seen = new Set();
+      seenByElement.set(el, seen);
+    }
     for (const url of new Set(urls)) {
       if (tasks.length >= MAX_IMAGES) break;
+      if (seen.has(url)) continue;
+      seen.add(url);
       tasks.push({ el, url });
     }
   };
 
   // 递归遍历规则（处理 @media / @supports 嵌套）
-  const walkRules = (rules) => {
+  const walkRules = (rules, baseUrl) => {
     if (!rules) return;
     for (const rule of rules) {
       if (!rule) continue;
@@ -207,12 +244,27 @@ function findBackgroundTasks() {
         nested = null;
       }
       if (nested && nested.length > 0) {
-        walkRules(nested);
-        continue;
+        walkRules(nested, baseUrl);
       }
+
+      // @import 规则的资源基准是它自己的 href，而不是外层样式表
+      let imported = null;
+      try {
+        imported = rule.styleSheet;
+      } catch {
+        imported = null;
+      }
+      if (imported && imported.cssRules) {
+        try {
+          walkRules(imported.cssRules, imported.href || baseUrl);
+        } catch {
+          // 跨域导入的样式表无法读取，跳过
+        }
+      }
+
       const bg = rule.style ? rule.style.backgroundImage : "";
       if (!bg || !bg.includes("url(")) continue;
-      const urls = parseBackgroundUrls(bg);
+      const urls = parseBackgroundUrls(bg, baseUrl);
       if (!urls.length) continue;
 
       const selector = rule.selectorText || "";
@@ -238,7 +290,7 @@ function findBackgroundTasks() {
 
   for (const sheet of Array.from(document.styleSheets)) {
     try {
-      walkRules(sheet.cssRules);
+      walkRules(sheet.cssRules, sheet.href || document.baseURI);
     } catch {
       // 跨域样式表无法读取 cssRules，跳过
     }
@@ -280,12 +332,30 @@ function loadNaturalSize(src, timeout = 8000) {
   });
 }
 
+// 限制背景图尺寸探测的并发数，避免一次性发起数百个图片请求。
+async function loadNaturalSizes(urls, concurrency = 8) {
+  const list = Array.from(urls);
+  const result = new Map();
+  let next = 0;
+
+  const worker = async () => {
+    while (next < list.length) {
+      const url = list[next++];
+      result.set(url, await loadNaturalSize(url));
+    }
+  };
+
+  const workerCount = Math.min(concurrency, list.length);
+  await Promise.all(Array.from({ length: workerCount }, () => worker()));
+  return result;
+}
+
 // 统一构造图片条目（尺寸取整到 10px，状态判断用原始值）
 function buildImageItem({ src, moduleId, alt, rect, naturalWidth, naturalHeight, type }) {
   const rawWidth = rect.width;
   const rawHeight = rect.height;
-  const displayWidth = Math.max(1, Math.round(rawWidth / 10) * 10);
-  const displayHeight = Math.max(1, Math.round(rawHeight / 10) * 10);
+  const displayWidth = rawWidth > 0 ? Math.max(10, Math.round(rawWidth / 10) * 10) : 0;
+  const displayHeight = rawHeight > 0 ? Math.max(10, Math.round(rawHeight / 10) * 10) : 0;
 
   let status = "normal";
   if (!naturalWidth || !naturalHeight) {
@@ -344,13 +414,8 @@ async function collectImageSizes() {
   const bgTasks = findBackgroundTasks();
   const seenUrls = new Set(bgTasks.map((task) => task.url));
 
-  // 并行加载所有不重复背景图的原始尺寸
-  const sizeCache = new Map();
-  await Promise.all(
-    Array.from(seenUrls).map(async (url) => {
-      sizeCache.set(url, await loadNaturalSize(url));
-    })
-  );
+  // 限制并发加载所有不重复背景图的原始尺寸
+  const sizeCache = await loadNaturalSizes(seenUrls);
 
   for (const { el, url } of bgTasks) {
     if (list.length >= MAX_IMAGES) break;
@@ -371,8 +436,69 @@ async function collectImageSizes() {
   return { total: images.length + bgTasks.length, list };
 }
 
-// 页面加载后根据开关状态自动填充（多次尝试以兼容延迟渲染的表单）
-[0, 800, 2000].forEach((delay) => setTimeout(tryFillIfEnabled, delay));
+// 页面加载后根据开关状态自动填充；只填空白字段，避免覆盖用户输入
+function debounce(fn, delay = 200) {
+  let timer = null;
+  return (...args) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn(...args), delay);
+  };
+}
+
+let autoFillObserver = null;
+let autoFillStopTimer = null;
+let autoFillEnabled = false;
+
+function stopAutoFillWatcher() {
+  if (autoFillObserver) autoFillObserver.disconnect();
+  autoFillObserver = null;
+  if (autoFillStopTimer) clearTimeout(autoFillStopTimer);
+  autoFillStopTimer = null;
+}
+
+function startAutoFillWatcher() {
+  if (!autoFillEnabled || autoFillObserver) return;
+
+  const fill = debounce(() => {
+    if (autoFillEnabled) fillElementorForms();
+  }, 200);
+  fill();
+
+  autoFillObserver = new MutationObserver(() => {
+    if (autoFillEnabled && document.querySelector("form.elementor-form")) fill();
+  });
+  autoFillObserver.observe(document.documentElement, {
+    childList: true,
+    subtree: true,
+    attributes: true,
+    attributeFilter: ["class", "style", "hidden"],
+  });
+  autoFillStopTimer = setTimeout(stopAutoFillWatcher, 15000);
+}
+
+chrome.storage.onChanged.addListener((changes, areaName) => {
+  if (areaName !== "local") return;
+  if (changes[FORM_DATA_KEY]) {
+    formData = normalizeFormData(changes[FORM_DATA_KEY].newValue);
+  }
+  if (changes.switchStatus) {
+    autoFillEnabled = changes.switchStatus.newValue === true;
+    if (autoFillEnabled) {
+      chrome.storage.local.get([FORM_DATA_KEY], (result) => {
+        formData = normalizeFormData(result[FORM_DATA_KEY]);
+        startAutoFillWatcher();
+      });
+    } else {
+      stopAutoFillWatcher();
+    }
+  }
+});
+
+chrome.storage.local.get(["switchStatus", FORM_DATA_KEY], (result) => {
+  formData = normalizeFormData(result[FORM_DATA_KEY]);
+  autoFillEnabled = result.switchStatus === true;
+  if (autoFillEnabled) startAutoFillWatcher();
+});
 setTimeout(website, 2000);
 
 // 监听页面加载，若在 Shopify 主题商店则注入按钮
@@ -382,44 +508,35 @@ if (document.readyState === "loading") {
   setupShopifyThemeButton();
 }
 
-// 监听开关变化：在 popup 中开启时，当前页也会立刻填充
-chrome.storage.onChanged.addListener((changes, areaName) => {
-  if (areaName === "local" && changes.switchStatus?.newValue === true) {
-    tryFillIfEnabled();
-  }
-});
-
-// 接收来自 inject.js（页面上下文）的 Shopify 检测结果
-window.addEventListener("message", (event) => {
-  if (event.source !== window) return;
-  if (event.data?.type === "FROM_PAGE_SHOPIFY_INFO") {
-    chrome.storage.local.set({ shopifyInfo: event.data.payload }).catch(() => {});
-  }
-});
-
-// 检查页面 no-index 状态
+// 检查页面 no-index 状态（合并 robots / googlebot / bingbot meta）
 function getNoIndexStatus() {
-  const meta = document.querySelector('meta[name="robots"]');
-  const content = (meta?.content || "").toLowerCase();
-  const noindex = content.includes("noindex");
+  const metas = Array.from(document.querySelectorAll("meta[name]")).filter((meta) =>
+    /^(robots|googlebot|bingbot)$/i.test(meta.getAttribute("name") || "")
+  );
+  const contents = metas.map((meta) => (meta.content || "").trim()).filter(Boolean);
+  const content = contents.join(", ");
+  const tokens = content.toLowerCase().split(/[\s,]+/);
+  const noindex = tokens.includes("noindex") || tokens.includes("none");
   return {
     noindex,
-    metaContent: meta ? meta.content : "",
-    hasMeta: !!meta,
+    metaContent: content,
+    hasMeta: metas.length > 0,
   };
 }
 
+function describeHiddenSection(el) {
+  const parts = [el.tagName.toLowerCase()];
+  const id = el.getAttribute("id");
+  if (id) parts.push("#" + id);
+  const cls = (el.className && typeof el.className === "string") ? el.className : "";
+  const meaningful = cls.split(/\s+/).filter((c) => c && !c.startsWith("elementor-hidden-"));
+  if (meaningful.length) parts.push("." + meaningful.slice(0, 3).join("."));
+  return parts.join("");
+}
+
 // 返回隐藏元素的标识描述：tag + #id + 相关 class
-function getHiddenSections() {
-  return findHiddenSectionEls().map((el) => {
-    const parts = [el.tagName.toLowerCase()];
-    const id = el.getAttribute("id");
-    if (id) parts.push("#" + id);
-    const cls = (el.className && typeof el.className === "string") ? el.className : "";
-    const meaningful = cls.split(/\s+/).filter((c) => c && !c.startsWith("elementor-hidden-"));
-    if (meaningful.length) parts.push("." + meaningful.slice(0, 3).join("."));
-    return parts.join("");
-  });
+function getHiddenSections(elements = findHiddenSectionEls()) {
+  return elements.map(describeHiddenSection);
 }
 
 // ===== 隐藏板块页面标记（强制显示 + 黑色蒙层） =====
@@ -432,7 +549,12 @@ function clearHiddenSectionMarks() {
   let cleared = 0;
   overlays.forEach((overlay) => {
     const el = overlay.parentElement;
-    const orig = overlay.dataset.origStyle ? JSON.parse(overlay.dataset.origStyle) : {};
+    let orig = {};
+    try {
+      orig = overlay.dataset.origStyle ? JSON.parse(overlay.dataset.origStyle) : {};
+    } catch (_) {
+      orig = {};
+    }
     if (el) {
       if (orig.display !== undefined) el.style.display = orig.display;
       if (orig.visibility !== undefined) el.style.visibility = orig.visibility;
@@ -449,20 +571,13 @@ function clearHiddenSectionMarks() {
 // 查找隐藏板块（同时包含 desktop 与 mobile 隐藏 class）
 function findHiddenSectionEls() {
   return Array.from(
-    document.querySelectorAll('*')
-  ).filter((el) => {
-    const cls = (el.className && typeof el.className === "string") ? el.className : "";
-    return (
-      cls.includes("elementor-hidden-desktop") &&
-      cls.includes("elementor-hidden-mobile")
-    );
-  });
+    document.querySelectorAll(".elementor-hidden-desktop.elementor-hidden-mobile")
+  );
 }
 
 // 强制显示隐藏板块，并添加黑色蒙层
-function markHiddenSections() {
+function markHiddenSections(hidden = findHiddenSectionEls()) {
   clearHiddenSectionMarks();
-  const hidden = findHiddenSectionEls();
   hidden.forEach((el) => {
     // 记录原始 inline 样式以便恢复
     const orig = {
@@ -480,6 +595,7 @@ function markHiddenSections() {
     // 黑色蒙层遮罩
     const overlay = document.createElement("div");
     overlay.className = "wp-tools-hidden-mask";
+    overlay.setAttribute("aria-hidden", "true");
     overlay.dataset.origStyle = JSON.stringify(orig);
     overlay.style.cssText =
       "position:absolute;inset:0;background:rgba(0,0,0,0.65);" +
@@ -534,7 +650,13 @@ function getH1Info() {
   return {
     count: h1s.length,
     items: h1s.map((el, index) => {
-      const text = (el.textContent || "").replace(/\s+/g, " ").trim().slice(0, 80);
+      const text = Array.from(el.childNodes)
+        .filter((node) => !(node.nodeType === 1 && node.classList.contains("wp-tools-h1-badge")))
+        .map((node) => node.textContent || "")
+        .join("")
+        .replace(/\s+/g, " ")
+        .trim()
+        .slice(0, 80);
       const elId = el.getAttribute("id");
       const cls = typeof el.className === "string" ? el.className.trim() : "";
       const meaningful = cls.split(/\s+/).filter((c) => c && !c.startsWith("elementor-hidden-"));
@@ -553,14 +675,15 @@ function markH1Tags() {
   clearH1Marks();
   const h1s = Array.from(document.querySelectorAll("h1"));
   h1s.forEach((el, index) => {
-    const badge = document.createElement("div");
+    const badge = document.createElement("span");
     badge.className = "wp-tools-h1-badge";
+    badge.setAttribute("aria-hidden", "true");
     badge.dataset.orig = JSON.stringify({
       position: el.style.position,
       outline: el.style.outline,
       outlineOffset: el.style.outlineOffset,
     });
-    if (!el.style.position || el.style.position === "static") {
+    if (getComputedStyle(el).position === "static") {
       el.style.position = "relative";
     }
     el.style.setProperty("outline", "3px dashed #ff7a00", "important");
@@ -571,7 +694,7 @@ function markH1Tags() {
       "background:#ff6a00;color:#fff;font-size:13px;font-weight:800;" +
       "padding:5px 12px;border-radius:8px;border:2px solid #fff;" +
       "letter-spacing:0.5px;line-height:1.2;box-shadow:0 3px 10px rgba(0,0,0,0.45);" +
-      "pointer-events:none;";
+      "pointer-events:none;user-select:none;";
     badge.textContent = "H1 #" + (index + 1);
     el.appendChild(badge);
   });
@@ -580,20 +703,23 @@ function markH1Tags() {
 }
 
 
-function checkWpPage(mark = true) {
-  let marked = 0;
-  let h1Marked = 0;
+function checkWpPage(mark = false) {
+  const noIndex = getNoIndexStatus();
+  const hiddenElements = findHiddenSectionEls();
+  const hiddenSections = getHiddenSections(hiddenElements);
+  const h1 = getH1Info();
   if (mark) {
-    marked = markHiddenSections();
-    h1Marked = markH1Tags();
+    markHiddenSections(hiddenElements);
+    markH1Tags();
   }
   return {
     ok: true,
-    noIndex: getNoIndexStatus(),
-    hiddenSections: getHiddenSections(),
-    marked,
-    h1: getH1Info(),
-    h1Marked,
+    noIndex,
+    hiddenSections,
+    marked: hiddenMarkActive ? hiddenElements.length : 0,
+    hiddenMarked: hiddenMarkActive,
+    h1,
+    h1Marked: h1MarkActive,
   };
 }
 
@@ -620,11 +746,32 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     return true;
   }
   if (message.action === "checkWp") {
-    sendResponse(checkWpPage(message.mark !== false));
+    sendResponse(checkWpPage(message.mark === true));
+    return false;
+  }
+  if (message.action === "markHiddenSections") {
+    const hidden = findHiddenSectionEls();
+    sendResponse({
+      ok: true,
+      marked: markHiddenSections(hidden),
+      hiddenMarked: hiddenMarkActive,
+    });
+    return false;
+  }
+  if (message.action === "markH1") {
+    const count = markH1Tags();
+    sendResponse({ ok: true, h1Marked: count > 0, h1: getH1Info() });
     return false;
   }
   if (message.action === "checkH1") {
-    sendResponse({ ok: true, h1: getH1Info(), h1Marked: markH1Tags() });
+    const h1 = getH1Info();
+    let h1Marked = h1MarkActive;
+    if (message.mark === true) h1Marked = markH1Tags() > 0;
+    sendResponse({ ok: true, h1, h1Marked });
+    return false;
+  }
+  if (message.action === "getMarkStatus") {
+    sendResponse({ ok: true, hiddenMarked: hiddenMarkActive, h1Marked: h1MarkActive });
     return false;
   }
   if (message.action === "clearHiddenMarks") {
@@ -636,26 +783,29 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     return false;
   }
   if (message.action === "judgePage") {
-    window.postMessage({ type: "REQUEST_SHOPIFY_INFO" }, "*");
     let responded = false;
+    let retryTimer = null;
     const handler = (event) => {
       if (event.source !== window || event.data?.type !== "FROM_PAGE_SHOPIFY_INFO") return;
       if (responded) return;
       responded = true;
+      if (retryTimer) clearInterval(retryTimer);
       window.removeEventListener("message", handler);
-      const payload = event.data.payload;
-      chrome.storage.local.set({ shopifyInfo: payload }).catch(() => {});
-      sendResponse(payload);
+      sendResponse(event.data.payload);
     };
     window.addEventListener("message", handler);
+    const request = () => window.postMessage({ type: "REQUEST_SHOPIFY_INFO" }, "*");
+    request();
+    retryTimer = setInterval(() => {
+      if (!responded) request();
+    }, 400);
     setTimeout(() => {
       if (responded) return;
       responded = true;
+      if (retryTimer) clearInterval(retryTimer);
       window.removeEventListener("message", handler);
-      chrome.storage.local.get(["shopifyInfo"], (result) => {
-        sendResponse(result.shopifyInfo ?? null);
-      });
-    }, 2500);
+      sendResponse({ isShopify: false, error: "未检测到 Shopify 或页面未响应，请刷新后重试" });
+    }, 3000);
     return true;
   }
   return false;

@@ -1,8 +1,16 @@
 <template>
-  <label class="rocker rocker-small">
-    <input type="checkbox" v-model="props.status" @change="onChange($event)" />
-    <span class="switch-left">Yes</span>
-    <span class="switch-right">No</span>
+  <label class="toggle" :class="{ 'is-on': props.status }">
+    <input
+      type="checkbox"
+      role="switch"
+      :checked="props.status"
+      :aria-checked="props.status"
+      aria-label="切换功能状态"
+      @change="onChange($event)"
+    />
+    <span class="toggle-track" aria-hidden="true">
+      <span class="toggle-thumb"></span>
+    </span>
   </label>
 </template>
 <script setup>
@@ -12,155 +20,65 @@ const props = defineProps({
 
 const emits = defineEmits(["switchChange"]);
 
-async function sendToContent(isChecked) {
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (!tab?.id) return;
-  try {
-    await chrome.tabs.sendMessage(tab.id, {
-      action: "popupOpened",
-      data: { isChecked },
-    });
-  } catch (e) {
-    console.log("发送消息到 content 失败（可能未刷新页面）:", e.message);
-  }
-}
-
 function onChange(event) {
   const checked = event.target.checked;
   emits("switchChange", checked);
-  if (checked) sendToContent(true);
 }
 </script>
 <style scoped>
-.rocker {
-  display: inline-block;
+.toggle {
   position: relative;
-  font-size: 2em;
-  font-weight: bold;
-  text-align: center;
-  text-transform: uppercase;
-  color: #888;
-  width: 7em;
-  height: 4em;
-  overflow: hidden;
-  border-bottom: 0.5em solid #eee;
-}
-
-.rocker-small {
-  font-size: 0.75em;
-  margin: 1em;
-}
-
-.rocker::before {
-  content: "";
-  position: absolute;
-  top: 0.5em;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: #999;
-  border: 0.5em solid #eee;
-  border-bottom: 0;
-}
-
-.rocker input {
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
-.switch-left,
-.switch-right {
-  cursor: pointer;
-  position: absolute;
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  height: 2.5em;
-  width: 3em;
-  transition: 0.2s;
-  user-select: none;
+  flex: none;
+  cursor: pointer;
 }
 
-.switch-left {
-  height: 2.4em;
-  width: 2.75em;
-  left: 0.85em;
-  bottom: 0.4em;
-  background-color: #ddd;
-  transform: rotate(15deg) skewX(15deg);
-}
-
-.switch-right {
-  right: 0.5em;
-  bottom: 0;
-  background-color: #bd5757;
-  color: #fff;
-}
-
-.switch-left::before,
-.switch-right::before {
-  content: "";
+.toggle input {
   position: absolute;
-  width: 0.4em;
-  height: 2.45em;
-  bottom: -0.45em;
-  background-color: #ccc;
-  transform: skewY(-65deg);
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  pointer-events: none;
 }
 
-.switch-left::before {
-  left: -0.4em;
+.toggle-track {
+  position: relative;
+  display: block;
+  width: 38px;
+  height: 22px;
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #eef2f7 0%, #e2e8f0 100%);
+  box-shadow: inset 0 1px 2px rgba(23, 32, 51, 0.08);
+  transition: background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
 }
 
-.switch-right::before {
-  right: -0.375em;
-  background-color: transparent;
-  transform: skewY(65deg);
+.toggle-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(23, 32, 51, 0.2), 0 1px 1px rgba(23, 32, 51, 0.08);
+  transition: transform 0.18s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-input:checked + .switch-left {
-  background-color: #0084d0;
-  color: #fff;
-  bottom: 0px;
-  left: 0.5em;
-  height: 2.5em;
-  width: 3em;
-  transform: rotate(0deg) skewX(0deg);
+.toggle.is-on .toggle-track {
+  border-color: #1d4ed8;
+  background: linear-gradient(180deg, #3b82f6 0%, var(--primary) 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 3px 9px rgba(37, 99, 235, 0.24);
 }
 
-input:checked + .switch-left::before {
-  background-color: transparent;
-  width: 3.0833em;
+.toggle.is-on .toggle-thumb {
+  transform: translateX(16px);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.26);
 }
 
-input:checked + .switch-left + .switch-right {
-  background-color: #ddd;
-  color: #888;
-  bottom: 0.4em;
-  right: 0.8em;
-  height: 2.4em;
-  width: 2.75em;
-  transform: rotate(-15deg) skewX(-15deg);
-}
-
-input:checked + .switch-left + .switch-right::before {
-  background-color: #ccc;
-}
-
-input:focus + .switch-left {
-  color: #333;
-}
-
-input:checked:focus + .switch-left {
-  color: #fff;
-}
-
-input:focus + .switch-left + .switch-right {
-  color: #fff;
-}
-
-input:checked:focus + .switch-left + .switch-right {
-  color: #333;
+.toggle input:focus-visible + .toggle-track {
+  outline: 2px solid rgba(37, 99, 235, 0.35);
+  outline-offset: 2px;
 }
 </style>

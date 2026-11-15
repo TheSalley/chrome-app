@@ -2,12 +2,49 @@ const STORAGE_KEY = "calendar_todo_tasks_v1";
 const HOLIDAY_API = "https://cron.1919532973.workers.dev";
 const HOLIDAY_CACHE_KEY = "calendar_holidays_v1";
 const HOLIDAY_CACHE_TTL = 30 * 60 * 1000; // 30 分钟
-const NEW_TAB_TODO_KEY = "newTabTodo";
 
 const TASK_COLORS = ["#0071e3", "#34c759", "#ff9500", "#af52de", "#ff3b30", "#00b3a4", "#ffcc00", "#5e5ce6"];
 let taskColorIndex = 0;
 
-let tasks = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+function readStoredTasks(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return {};
+    const parsed = JSON.parse(raw);
+    if(!parsed || typeof parsed !== "object" || Array.isArray(parsed)){
+      throw new Error("任务数据格式不正确");
+    }
+
+    const clean = {};
+    for(const [day, list] of Object.entries(parsed)){
+      if(!Array.isArray(list)) continue;
+      const valid = list.filter(task =>
+        task && typeof task === "object" &&
+        typeof task.text === "string" && task.text.trim() &&
+        (!task.range || (Array.isArray(task.dates) && task.dates.length > 0))
+      );
+      if(valid.length) clean[day] = valid;
+    }
+    return clean;
+  }catch(err){
+    console.error("读取任务数据失败，已备份原始数据", err);
+    let backedUp = false;
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(raw){
+        localStorage.setItem(`${STORAGE_KEY}_backup_${Date.now()}`, raw);
+        backedUp = true;
+      }
+    }catch(_){}
+    // 备份成功后移除损坏数据，避免每次打开页面都重复生成备份、挤占存储空间
+    if(backedUp){
+      try{ localStorage.removeItem(STORAGE_KEY); }catch(_){}
+    }
+    return {};
+  }
+}
+
+let tasks = readStoredTasks();
 let viewDate = new Date();
 let selectedDate = new Date();
 let holidayData = [];
@@ -45,7 +82,27 @@ function darkenColor(hex){
 }
 
 function save(){
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+  try{
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+    setSaveStatus(true);
+    return true;
+  }catch(err){
+    console.error("保存任务失败", err);
+    setSaveStatus(false);
+    return false;
+  }
+}
+
+function setSaveStatus(ok){
+  const el = $("saveStatus");
+  if(!el) return;
+  el.classList.toggle("save-error", !ok);
+  if(ok){
+    const now = new Date();
+    el.innerHTML = `<i class="dot"></i>已保存 ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+  }else{
+    el.innerHTML = '<i class="dot"></i>保存失败，请检查存储空间';
+  }
 }
 
 function sameDay(a, b){
@@ -464,29 +521,38 @@ function renderHolidays(){
   });
 }
 
+function readHolidayCache(){
+  try{
+    const cached = JSON.parse(localStorage.getItem(HOLIDAY_CACHE_KEY));
+    if(cached && Array.isArray(cached.data) && cached.data.length) return cached;
+  }catch(_){}
+  return null;
+}
+
 async function loadHolidays(force = false){
   const listEl = $("holidayList");
   const retryEl = $("holidayRetry");
   const cacheTag = $("holidayCacheTag");
 
   if(!force){
-    try{
-      const cached = JSON.parse(localStorage.getItem(HOLIDAY_CACHE_KEY));
-      if(cached && cached.data && Date.now() - cached.ts < HOLIDAY_CACHE_TTL){
-        holidayData = cached.data;
-        renderHolidays();
-        cacheTag.textContent = "缓存";
-        return;
-      }
-    }catch(_){}
+    const cached = readHolidayCache();
+    if(cached && Date.now() - cached.ts < HOLIDAY_CACHE_TTL){
+      holidayData = cached.data;
+      renderHolidays();
+      cacheTag.textContent = "缓存";
+      return;
+    }
   }
 
   listEl.innerHTML = '<div class="holiday-loading"><div class="spinner"></div>正在获取节日...</div>';
   retryEl.style.display = "none";
   cacheTag.textContent = "";
 
+  let timeoutId = null;
   try{
-    const res = await fetch(HOLIDAY_API + "/", { method: "GET" });
+    const controller = new AbortController();
+    timeoutId = setTimeout(() => controller.abort(), 10000);
+    const res = await fetch(HOLIDAY_API + "/", { method: "GET", signal: controller.signal });
     if(!res.ok) throw new Error("HTTP " + res.status);
     const json = await res.json();
     if(!json || json.success === false || !Array.isArray(json.data)) throw new Error("bad payload");
@@ -500,8 +566,18 @@ async function loadHolidays(force = false){
     cacheTag.textContent = "刚刚更新";
   }catch(err){
     console.error("Holiday fetch failed:", err);
-    listEl.innerHTML = '<div class="holiday-error"><span>😢 节日数据加载失败</span><span>请检查网络后重试</span></div>';
-    retryEl.style.display = "";
+    const cached = readHolidayCache();
+    if(cached){
+      holidayData = cached.data;
+      renderHolidays();
+      cacheTag.textContent = "网络异常 · 显示缓存";
+      retryEl.style.display = "";
+    }else{
+      listEl.innerHTML = '<div class="holiday-error"><span>😢 节日数据加载失败</span><span>请检查网络后重试</span></div>';
+      retryEl.style.display = "";
+    }
+  }finally{
+    if(timeoutId) clearTimeout(timeoutId);
   }
 }
 
@@ -553,24 +629,7 @@ rangeStart.addEventListener("change", updateRangeHint);
 rangeEnd.addEventListener("change", updateRangeHint);
 $("rangeAddBtn").addEventListener("click", addRangeTask);
 
-/* 开关关闭或未设置时，把当前标签页改回浏览器默认新标签页 */
-async function redirectIfDisabled(){
-  try{
-    const result = await chrome.storage.local.get([NEW_TAB_TODO_KEY]);
-    const enabled = result[NEW_TAB_TODO_KEY];
-    if(enabled !== true){
-      const tab = await chrome.tabs.getCurrent();
-      if(tab && tab.id){
-        await chrome.tabs.update(tab.id, { url: "chrome://newtab/" });
-      }
-    }
-  }catch(e){
-    console.error("newtab guard failed:", e);
-  }
-}
-
 updateHeaderSub();
 renderCalendar();
 renderTasks();
 loadHolidays();
-redirectIfDisabled();

@@ -1,11 +1,12 @@
 {
-  "name": "aaa",
+  "name": "website-tools-extension",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.0.7",
   "type": "module",
   "scripts": {
     "dev": "node dev-with-build.js",
     "build": "vite build",
+    "postbuild": "node scripts/check-content-entry.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
