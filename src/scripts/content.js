@@ -173,6 +173,12 @@ function isSvgImage(src) {
   }
 }
 
+// 元素是否位于 Elementor 的页头/页脚模板内（采集图片尺寸时忽略）
+function isInHeaderOrFooter(el) {
+  if (!el) return false;
+  return !!el.closest('[data-elementor-type="header"], [data-elementor-type="footer"]');
+}
+
 // 查找图片所属的最外层 Elementor 板块（section / container）
 function findOuterElementorBlock(img) {
   const selector = '.elementor-section, [data-element_type="container"]';
@@ -217,6 +223,8 @@ function findBackgroundTasks() {
 
   const tryAdd = (el, urls) => {
     if (tasks.length >= MAX_IMAGES) return;
+    // 忽略页头/页脚模板内的背景图
+    if (isInHeaderOrFooter(el)) return;
     let seen = seenByElement.get(el);
     if (!seen) {
       seen = new Set();
@@ -385,15 +393,23 @@ function buildImageItem({ src, moduleId, alt, rect, naturalWidth, naturalHeight,
 }
 
 // 收集页面图片的真实尺寸信息（忽略 SVG）：<img> 标签 + CSS 背景图片
+// 去重口径：同一模块（最外层 Elementor 板块）内，相同图片 URL 只保留一条；
+// 不同模块中的相同图片仍分别统计。
 async function collectImageSizes() {
   const list = [];
+  const seenKeys = new Set(); // "moduleId\u0000src" 组合，模块内按 URL 去重
   const addItem = (item) => {
-    if (list.length < MAX_IMAGES) list.push(item);
+    if (list.length >= MAX_IMAGES) return;
+    const key = (item.moduleId || "") + "\u0000" + (item.src || "");
+    if (seenKeys.has(key)) return;
+    seenKeys.add(key);
+    list.push(item);
   };
 
-  // 1) <img> 标签
+  // 1) <img> 标签（忽略 SVG 与页头/页脚模板内的图片）
   const images = Array.from(document.images).filter(
-    (img) => !isSvgImage(img.currentSrc || img.src || "")
+    (img) =>
+      !isSvgImage(img.currentSrc || img.src || "") && !isInHeaderOrFooter(img)
   );
   for (const img of images) {
     if (list.length >= MAX_IMAGES) break;
@@ -433,7 +449,7 @@ async function collectImageSizes() {
     );
   }
 
-  return { total: images.length + bgTasks.length, list };
+  return { total: list.length, list };
 }
 
 // 页面加载后根据开关状态自动填充；只填空白字段，避免覆盖用户输入
