@@ -11,7 +11,7 @@ import Home from "@/views/Home.vue";
   width: 360px;
   height: 600px;
   overflow: hidden;
-  background: var(--app-bg);
-  color: var(--text);
+  background: var(--color-system-bg);
+  color: var(--color-system-label);
 }
 </style>

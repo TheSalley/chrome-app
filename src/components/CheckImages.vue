@@ -2,19 +2,16 @@
   <div class="images-panel">
     <button
       type="button"
-      class="btn-primary collect-button"
+      class="btn btn-primary collect-button"
       :disabled="loading || exporting"
       @click="collect"
     >
       <span v-if="loading" class="inline-flex items-center gap-1.5">
-        <svg class="spinner h-3.5 w-3.5" viewBox="0 0 24 24" fill="none">
-          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-        </svg>
+        <svg class="spinner h-4 w-4" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="42 15"></circle></svg>
         采集中...
       </span>
       <span v-else class="inline-flex items-center gap-1.5">
-        <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
           <rect x="3" y="4" width="18" height="16" rx="3"></rect>
           <circle cx="8.5" cy="9" r="1.5"></circle>
           <path d="M4 17l5-5 3.5 3 2.5-2.5L20 17"></path>
@@ -24,7 +21,7 @@
     </button>
 
     <div v-if="error" class="error-banner" role="alert">
-      <svg class="error-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <svg class="error-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
         <circle cx="12" cy="12" r="9"></circle>
         <path d="M12 8v4M12 16h.01"></path>
       </svg>
@@ -33,8 +30,8 @@
 
     <div v-if="loading" class="surface-card scan-card">
       <svg class="spinner" viewBox="0 0 24 24" fill="none">
-        <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2.5" opacity=".2"></circle>
-        <path d="M21 12a9 9 0 00-9-9" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"></path>
+        <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5" opacity=".2"></circle>
+        <path d="M21 12a9 9 0 00-9-9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
       </svg>
       <div>
         <strong>正在采集页面图片</strong>
@@ -61,22 +58,22 @@
         </div>
         <button
           type="button"
-          class="btn-secondary export-button"
+          class="btn btn-secondary export-button"
           :disabled="loading"
           @click="exportJson"
         >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12 3v12M7 10l5 5 5-5M5 21h14"></path>
           </svg>
           JSON
         </button>
         <button
           type="button"
-          class="btn-secondary export-button"
+          class="btn btn-secondary export-button"
           :disabled="loading || exporting"
           @click="exportExcel"
         >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
             <path d="M7 3h7l4 4v14H7z"></path><path d="M14 3v5h5M10 12l4 5M14 12l-4 5"></path>
           </svg>
           {{ exporting ? "导出中" : "Excel" }}
@@ -124,7 +121,7 @@
 
       <div v-else class="surface-card empty-card">
         <span class="empty-art" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
             <rect x="3" y="4" width="18" height="16" rx="3"></rect>
             <path d="M4 17l5-5 3.5 3 2.5-2.5L20 17"></path>
           </svg>
@@ -138,7 +135,7 @@
 
     <section v-else-if="!loading" class="surface-card idle-card">
       <span class="idle-icon" aria-hidden="true">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
           <rect x="3" y="4" width="18" height="16" rx="3"></rect>
           <circle cx="8.5" cy="9" r="1.5"></circle>
           <path d="M4 17l5-5 3.5 3 2.5-2.5L20 17"></path>
@@ -515,358 +512,3 @@ async function exportExcel() {
   }
 }
 </script>
-
-<style scoped>
-.images-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.collect-button {
-  width: 100%;
-}
-
-.error-icon {
-  width: 14px;
-  height: 14px;
-  flex: none;
-  margin-top: 1px;
-}
-
-.scan-card {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  padding: 14px;
-  border-color: #dbe7f6;
-  background: linear-gradient(135deg, #ffffff 0%, #f7fbff 100%);
-  color: var(--primary);
-}
-
-.scan-card > svg {
-  width: 20px;
-  height: 20px;
-  flex: none;
-  box-sizing: content-box;
-  padding: 7px;
-  border: 1px solid #dbeafe;
-  border-radius: 10px;
-  background: var(--primary-soft);
-}
-
-.scan-card > div {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.scan-card strong {
-  color: var(--text-soft);
-  font-size: 11.5px;
-  font-weight: 700;
-  line-height: 1.35;
-}
-
-.scan-card span {
-  color: var(--muted);
-  font-size: 10px;
-  line-height: 1.45;
-}
-
-.metric-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 7px;
-}
-
-.metric-card {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-  gap: 3px;
-  padding: 10px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: linear-gradient(180deg, #ffffff 0%, #fcfdff 100%);
-  box-shadow: inset 0 1px 0 #fff, var(--shadow-sm);
-}
-
-.metric-value {
-  color: var(--text);
-  font-size: 20px;
-  font-weight: 750;
-  letter-spacing: -0.04em;
-  line-height: 1;
-}
-
-.metric-label {
-  overflow: hidden;
-  color: var(--muted);
-  font-size: 10.5px;
-  font-weight: 650;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.limit-note {
-  margin: 0;
-  padding: 8px 10px;
-  border: 1px solid #fde68a;
-  border-radius: 9px;
-  background: var(--warning-soft);
-  color: var(--warning);
-  font-size: 10px;
-  line-height: 1.55;
-}
-
-.export-bar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 11px;
-}
-
-.export-copy {
-  display: flex;
-  min-width: 0;
-  flex: 1;
-  flex-direction: column;
-  gap: 1px;
-}
-
-.export-copy strong {
-  color: var(--text-soft);
-  font-size: 11px;
-  font-weight: 700;
-}
-
-.export-copy span {
-  overflow: hidden;
-  color: var(--subtle);
-  font-size: 9.5px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.export-button {
-  min-height: 32px;
-  gap: 4px;
-  padding: 5px 9px;
-  font-size: 10.5px;
-}
-
-.export-button svg {
-  width: 12px;
-  height: 12px;
-}
-
-.image-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.image-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 10px;
-  transition: border-color 0.16s ease, box-shadow 0.16s ease;
-}
-
-.image-item:hover {
-  border-color: #cbd5e1;
-  box-shadow: 0 5px 16px rgba(23, 32, 51, 0.07);
-}
-
-.thumb-wrap {
-  position: relative;
-  width: 56px;
-  height: 56px;
-  flex: none;
-  overflow: hidden;
-  border: 1px solid #e5ebf3;
-  border-radius: 10px;
-  background: var(--surface-muted);
-}
-
-.thumb-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.thumb-placeholder {
-  display: flex;
-  width: 100%;
-  height: 100%;
-  align-items: center;
-  justify-content: center;
-  color: var(--subtle);
-  font-size: 9px;
-  font-weight: 750;
-  letter-spacing: 0.08em;
-}
-
-.thumb-kind {
-  position: absolute;
-  right: 3px;
-  bottom: 3px;
-  padding: 2px 4.5px;
-  border-radius: 4px;
-  background: rgba(15, 23, 42, 0.72);
-  color: #fff;
-  font-size: 8px;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  line-height: 1;
-}
-
-.image-content {
-  min-width: 0;
-  flex: 1;
-}
-
-.image-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 7px;
-}
-
-.image-head strong {
-  min-width: 0;
-  overflow: hidden;
-  color: var(--text);
-  font-size: 11.5px;
-  font-weight: 700;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.size-line {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  margin-top: 4px;
-  color: var(--subtle);
-  font-size: 10.5px;
-  line-height: 1.45;
-}
-
-.size-line b {
-  color: var(--muted);
-  font-weight: 600;
-}
-
-.tag-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin-top: 6px;
-}
-
-.mini-tag {
-  max-width: 100%;
-  overflow: hidden;
-  padding: 2px 5.5px;
-  border: 1px solid var(--line);
-  border-radius: 5px;
-  background: var(--surface-muted);
-  color: var(--muted);
-  font-size: 9.5px;
-  line-height: 1.3;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.mini-tag.mono {
-  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
-}
-
-.mini-tag.alt-tag {
-  border-color: #dbeafe;
-  background: var(--primary-soft);
-  color: var(--primary-strong);
-}
-
-.image-url {
-  margin: 5px 0 0;
-  overflow: hidden;
-  color: var(--subtle);
-  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
-  font-size: 9px;
-  line-height: 1.35;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.image-url.is-empty {
-  font-family: inherit;
-}
-
-.empty-card,
-.idle-card {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  padding: 14px;
-}
-
-.empty-card {
-  border-style: dashed;
-  border-color: #dbe5f2;
-  background: rgba(255, 255, 255, 0.62);
-}
-
-.empty-art,
-.idle-icon {
-  display: flex;
-  width: 32px;
-  height: 32px;
-  flex: none;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid #dbeafe;
-  border-radius: 10px;
-  background: linear-gradient(180deg, #f8fbff 0%, var(--primary-soft) 100%);
-  color: var(--primary);
-  box-shadow: inset 0 1px 0 #fff;
-}
-
-.empty-art svg,
-.idle-icon svg {
-  width: 16px;
-  height: 16px;
-}
-
-.empty-card > div,
-.idle-card > div {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.empty-card strong,
-.idle-card strong {
-  color: var(--text-soft);
-  font-size: 11px;
-  font-weight: 700;
-  line-height: 1.35;
-}
-
-.empty-card span,
-.idle-card span {
-  color: var(--subtle);
-  font-size: 10px;
-  line-height: 1.45;
-}
-
-.idle-card {
-  border-style: dashed;
-  border-color: #dbe5f2;
-  background: rgba(255, 255, 255, 0.62);
-}
-</style>

@@ -1,9 +1,10 @@
 <template>
-  <label class="toggle" :class="{ 'is-on': props.status }">
+  <label class="toggle" :class="{ 'is-on': props.status, 'is-disabled': props.disabled }">
     <input
       type="checkbox"
       role="switch"
       :checked="props.status"
+      :disabled="props.disabled"
       :aria-checked="props.status"
       aria-label="切换功能状态"
       @change="onChange($event)"
@@ -16,6 +17,7 @@
 <script setup>
 const props = defineProps({
   status: Boolean,
+  disabled: { type: Boolean, default: false },
 });
 
 const emits = defineEmits(["switchChange"]);
@@ -45,40 +47,51 @@ function onChange(event) {
 .toggle-track {
   position: relative;
   display: block;
-  width: 38px;
-  height: 22px;
-  border: 1px solid #cbd5e1;
+  width: 51px;
+  height: 31px;
+  border: 0;
   border-radius: 999px;
-  background: linear-gradient(180deg, #eef2f7 0%, #e2e8f0 100%);
-  box-shadow: inset 0 1px 2px rgba(23, 32, 51, 0.08);
-  transition: background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+  background: var(--color-system-gray);
+  transition: background-color 200ms var(--ease-apple), opacity 200ms var(--ease-apple);
+}
+
+.toggle:hover:not(.is-disabled) .toggle-track {
+  opacity: 0.85;
 }
 
 .toggle-thumb {
   position: absolute;
   top: 2px;
   left: 2px;
-  width: 16px;
-  height: 16px;
+  width: 27px;
+  height: 27px;
   border-radius: 50%;
-  background: #fff;
-  box-shadow: 0 1px 2px rgba(23, 32, 51, 0.2), 0 1px 1px rgba(23, 32, 51, 0.08);
-  transition: transform 0.18s cubic-bezier(0.2, 0.8, 0.2, 1);
+  background: var(--color-system-raised);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.2);
+  transition: transform 200ms var(--ease-apple);
+}
+
+.toggle:active:not(.is-disabled) .toggle-thumb {
+  transform: scale(0.92);
 }
 
 .toggle.is-on .toggle-track {
-  border-color: #1d4ed8;
-  background: linear-gradient(180deg, #3b82f6 0%, var(--primary) 100%);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 3px 9px rgba(37, 99, 235, 0.24);
+  background: var(--color-system-green);
 }
 
 .toggle.is-on .toggle-thumb {
-  transform: translateX(16px);
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.26);
+  transform: translateX(20px);
 }
 
-.toggle input:focus-visible + .toggle-track {
-  outline: 2px solid rgba(37, 99, 235, 0.35);
-  outline-offset: 2px;
+.toggle.is-on:active:not(.is-disabled) .toggle-thumb {
+  transform: translateX(20px) scale(0.92);
+}
+
+.toggle.is-disabled {
+  cursor: not-allowed;
+}
+
+.toggle.is-disabled .toggle-track {
+  filter: grayscale(1) opacity(0.6);
 }
 </style>
