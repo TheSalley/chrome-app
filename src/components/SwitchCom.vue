@@ -49,14 +49,14 @@ function onChange(event) {
   display: block;
   width: 51px;
   height: 31px;
-  border: 0;
+  border: 0.5px solid var(--separator, rgba(60,60,67,0.12));
   border-radius: 999px;
-  background: var(--color-system-gray);
+  background: var(--fill, rgba(120,120,128,0.08));
   transition: background-color 200ms var(--ease-apple), opacity 200ms var(--ease-apple);
 }
 
 .toggle:hover:not(.is-disabled) .toggle-track {
-  opacity: 0.85;
+  background: var(--fill-hover, rgba(120,120,128,0.14));
 }
 
 .toggle-thumb {
@@ -66,8 +66,8 @@ function onChange(event) {
   width: 27px;
   height: 27px;
   border-radius: 50%;
-  background: var(--color-system-raised);
-  box-shadow: 0 1px 3px rgb(0 0 0 / 0.2);
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.25), 0 1px 1px rgba(0,0,0,0.08);
   transition: transform 200ms var(--ease-apple);
 }
 
@@ -76,7 +76,7 @@ function onChange(event) {
 }
 
 .toggle.is-on .toggle-track {
-  background: var(--color-system-green);
+  background: var(--success, #34a853);
 }
 
 .toggle.is-on .toggle-thumb {

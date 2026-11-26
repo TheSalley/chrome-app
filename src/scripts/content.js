@@ -497,6 +497,11 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
   if (changes[FORM_DATA_KEY]) {
     formData = normalizeFormData(changes[FORM_DATA_KEY].newValue);
   }
+  if (changes[CAPTCHA_AUTO_KEY]) {
+    captchaAutoEnabled = changes[CAPTCHA_AUTO_KEY].newValue !== false;
+    if (captchaAutoEnabled) startCaptchaAutoFill();
+    else stopCaptchaAutoFill();
+  }
   if (changes.switchStatus) {
     autoFillEnabled = changes.switchStatus.newValue === true;
     if (autoFillEnabled) {
@@ -739,6 +744,288 @@ function checkWpPage(mark = false) {
   };
 }
 
+// ===== 验证码识别：供 popup 调用的取图 / 回填接口 =====
+function waitForCaptchaImage(img, timeout = 8000) {
+  if (img.complete && img.naturalWidth) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const cleanup = () => {
+      img.removeEventListener("load", done);
+      img.removeEventListener("error", fail);
+      clearTimeout(timer);
+    };
+    const done = () => {
+      cleanup();
+      resolve();
+    };
+    const fail = () => {
+      cleanup();
+      reject(new Error("验证码图片加载失败"));
+    };
+    const timer = setTimeout(() => {
+      cleanup();
+      reject(new Error("验证码图片加载超时"));
+    }, timeout);
+    img.addEventListener("load", done, { once: true });
+    img.addEventListener("error", fail, { once: true });
+  });
+}
+
+async function grabCaptchaImage() {
+  const button = document.querySelector(".captcha-button");
+  if (!button) return { ok: false, error: "当前页面未找到 .captcha-button" };
+  const img = button.tagName === "IMG" ? button : button.querySelector("img");
+  if (!img) return { ok: false, error: ".captcha-button 内未找到 img" };
+
+  await waitForCaptchaImage(img);
+  const src = img.currentSrc || img.src || "";
+  // data URI 直接回传，避免重新请求导致验证码被刷新
+  if (src.startsWith("data:")) {
+    return { ok: true, dataUrl: src, width: img.naturalWidth, height: img.naturalHeight };
+  }
+  // 用 canvas 重绘已显示的图片：不重新请求 URL（很多验证码 URL 每请求一次就换图）
+  try {
+    const canvas = document.createElement("canvas");
+    canvas.width = img.naturalWidth || 120;
+    canvas.height = img.naturalHeight || 40;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("无法创建画布");
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    return {
+      ok: true,
+      dataUrl: canvas.toDataURL("image/png"),
+      width: canvas.width,
+      height: canvas.height,
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      error: "验证码图片跨域，无法读取像素：" + String(err?.message || err),
+    };
+  }
+}
+
+function fillCaptchaInput(code) {
+  const field = document.querySelector(".captcha-field");
+  if (!field) return { ok: false, error: "当前页面未找到 .captcha-field" };
+  const input = field.matches("input, textarea")
+    ? field
+    : field.querySelector("input, textarea");
+  if (!input) return { ok: false, error: ".captcha-field 下未找到 input" };
+  if (input.disabled || input.readOnly) {
+    return { ok: false, error: "验证码输入框不可编辑" };
+  }
+  // 用原生 setter 写入，兼容 Vue v-model / React 受控组件
+  const proto =
+    input.tagName === "TEXTAREA"
+      ? HTMLTextAreaElement.prototype
+      : HTMLInputElement.prototype;
+  const setter = Object.getOwnPropertyDescriptor(proto, "value")?.set;
+  if (setter) setter.call(input, code);
+  else input.value = code;
+  input.dispatchEvent(new Event("input", { bubbles: true }));
+  input.dispatchEvent(new Event("change", { bubbles: true }));
+  return { ok: true, filled: true, value: input.value };
+}
+
+// ===== SVG 点阵验证码解析（内联，content script 必须自包含） =====
+// 与 src/utils/captchaDecode.js 保持同步：每个数字由 3 列 × 5 行小方块组成，
+// transform 里的 rotate 只是视觉变换，不改变 path 坐标，所以解析源码能精确还原。
+const CAPTCHA_TEMPLATES = [
+  "111101101101111", // 0
+  "010110010010111", // 1
+  "111001111100111", // 2
+  "111001111001111", // 3
+  "101101111001001", // 4
+  "111100111001111", // 5
+  "111100111101111", // 6
+  "111001001001001", // 7
+  "111101111101111", // 8
+  "111101111001111", // 9
+];
+
+function captchaParseGrid(d) {
+  const cells = [];
+  const re = /[Mm]\s*(-?\d+(?:\.\d+)?)[ ,]+(-?\d+(?:\.\d+)?)[hH]5[vV]5[hH]-?5[zZ]?/g;
+  let m;
+  while ((m = re.exec(d))) cells.push({ x: parseFloat(m[1]), y: parseFloat(m[2]) });
+  if (!cells.length) return null;
+  const xs = [...new Set(cells.map((c) => c.x))].sort((a, b) => a - b);
+  const ys = [...new Set(cells.map((c) => c.y))].sort((a, b) => a - b);
+  return {
+    grid: ys.map((y) =>
+      xs.map((x) => (cells.some((c) => c.x === x && c.y === y) ? "1" : "0")).join("")
+    ),
+    cols: xs.length,
+    rows: ys.length,
+  };
+}
+
+function captchaNormalizeGrid(grid, cols, rows) {
+  if (cols === 3 && rows === 5) return grid;
+  const out = [];
+  for (let r = 0; r < 5; r++) {
+    let line = "";
+    const sy = Math.min(rows - 1, Math.floor((r * rows) / 5));
+    for (let c = 0; c < 3; c++) {
+      const sx = Math.min(cols - 1, Math.floor((c * cols) / 3));
+      line += grid[sy]?.[sx] === "1" ? "1" : "0";
+    }
+    out.push(line);
+  }
+  return out;
+}
+
+function captchaMatchDigit(grid) {
+  const flat = grid.join("");
+  let best = 0;
+  let bestDist = Infinity;
+  for (let d = 0; d < 10; d++) {
+    let dist = 0;
+    for (let i = 0; i < 15; i++) if ((flat[i] || "0") !== CAPTCHA_TEMPLATES[d][i]) dist++;
+    if (dist < bestDist) {
+      bestDist = dist;
+      best = d;
+    }
+  }
+  return bestDist <= 4 ? String(best) : "?";
+}
+
+function decodeSvgCaptchaInline(dataUrl) {
+  if (!dataUrl || typeof dataUrl !== "string") return null;
+  let svg = null;
+  const prefix = "data:image/svg+xml;base64,";
+  if (dataUrl.startsWith(prefix)) {
+    try { svg = atob(dataUrl.slice(prefix.length)); } catch { return null; }
+  } else if (/^data:image\/svg\+xml/.test(dataUrl)) {
+    const comma = dataUrl.indexOf(",");
+    if (comma < 0) return null;
+    try { svg = decodeURIComponent(dataUrl.slice(comma + 1)); } catch { return null; }
+  } else {
+    return null;
+  }
+  const paths = [];
+  const re = /<path\b([^>]*)>/gi;
+  let m;
+  while ((m = re.exec(svg))) {
+    const attrs = m[1];
+    const d = /\bd\s*=\s*"([^"]*)"/i.exec(attrs)?.[1];
+    if (!d) continue;
+    const tr = /\btransform\s*=\s*"([^"]*)"/i.exec(attrs)?.[1] || "";
+    const tx = /translate\(\s*(-?[\d.]+)/.exec(tr);
+    paths.push({ d, x: tx ? parseFloat(tx[1]) : 0 });
+  }
+  if (!paths.length) return null;
+  paths.sort((a, b) => a.x - b.x);
+  const digits = [];
+  for (const p of paths) {
+    const parsed = captchaParseGrid(p.d);
+    if (!parsed) return null;
+    digits.push(captchaMatchDigit(captchaNormalizeGrid(parsed.grid, parsed.cols, parsed.rows)));
+  }
+  return digits.includes("?") ? null : digits.join("");
+}
+
+// ===== 验证码自动识别填充（页面内常驻，无需打开插件） =====
+const CAPTCHA_AUTO_KEY = "captchaAutoFill";
+let captchaAutoEnabled = true; // 默认开启
+let captchaObserver = null;
+let captchaPollTimer = null;
+
+// 穿透 open shadow DOM 查找元素
+function captchaDeepQuery(selector, root = document) {
+  const hit = root.querySelector(selector);
+  if (hit) return hit;
+  for (const el of root.querySelectorAll("*")) {
+    if (el.shadowRoot) {
+      const inner = captchaDeepQuery(selector, el.shadowRoot);
+      if (inner) return inner;
+    }
+  }
+  return null;
+}
+
+function captchaReadState() {
+  const button = captchaDeepQuery(".captcha-button");
+  if (!button) return null;
+  const img = button.tagName === "IMG" ? button : captchaDeepQuery("img", button);
+  if (!img) return null;
+  const src = img.currentSrc || img.src || "";
+  // 只对 SVG data URI 做精确解析；栅格图交给 popup 的 OCR 兜底
+  if (!/^data:image\/svg\+xml/.test(src)) return null;
+  return { code: decodeSvgCaptchaInline(src), field: captchaDeepQuery(".captcha-field") };
+}
+
+function autoFillCaptcha() {
+  if (!captchaAutoEnabled) return false;
+  const state = captchaReadState();
+  if (!state?.code || !state.field) return false;
+  const field = state.field;
+  const input = field.matches("input, textarea")
+    ? field
+    : captchaDeepQuery("input, textarea", field);
+  if (!input || input.disabled || input.readOnly) return false;
+  // 以 input 当前值为准，而不是记录上次填过的 src/code：
+  // 页面组件可能在填充后重置 input，此时必须重新填入。
+  if (input.value === state.code) return true;
+  const result = fillCaptchaInput(state.code);
+  if (result.ok) {
+    // 竞态兜底：页面 JS 常在稍后完成初始化并清空 input，
+    // 延迟复核时重新解析当前验证码，避免填入过期的值。
+    [150, 600, 1600].forEach((delay) => {
+      setTimeout(() => {
+        if (!captchaAutoEnabled) return;
+        const later = captchaReadState();
+        if (!later?.code || !later.field) return;
+        const laterInput = later.field.matches("input, textarea")
+          ? later.field
+          : captchaDeepQuery("input, textarea", later.field);
+        if (
+          laterInput &&
+          !laterInput.disabled &&
+          !laterInput.readOnly &&
+          laterInput.value !== later.code
+        ) {
+          fillCaptchaInput(later.code);
+        }
+      }, delay);
+    });
+  }
+  return result.ok;
+}
+
+function startCaptchaAutoFill() {
+  if (captchaObserver || !captchaAutoEnabled) return;
+  autoFillCaptcha();
+  captchaObserver = new MutationObserver(() => { autoFillCaptcha(); });
+  captchaObserver.observe(document.documentElement, {
+    childList: true,
+    subtree: true,
+    attributes: true,
+    attributeFilter: ["src", "class", "value"],
+  });
+  // 轮询兜底：应对不触发 DOM 变更的验证码刷新
+  captchaPollTimer = setInterval(autoFillCaptcha, 600);
+}
+
+function stopCaptchaAutoFill() {
+  if (captchaObserver) {
+    captchaObserver.disconnect();
+    captchaObserver = null;
+  }
+  if (captchaPollTimer) {
+    clearInterval(captchaPollTimer);
+    captchaPollTimer = null;
+  }
+}
+
+// 默认先启动，避免 storage 异步读取期间漏掉早期验证码；用户关闭后再停止
+startCaptchaAutoFill();
+chrome.storage.local.get([CAPTCHA_AUTO_KEY], (result) => {
+  captchaAutoEnabled = result[CAPTCHA_AUTO_KEY] !== false;
+  if (captchaAutoEnabled) startCaptchaAutoFill();
+  else stopCaptchaAutoFill();
+});
+
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message.action === "popupOpened") {
     const shouldFill = message.data?.isChecked === true;
@@ -796,6 +1083,20 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   }
   if (message.action === "clearH1Marks") {
     sendResponse({ ok: true, cleared: clearH1Marks() });
+    return false;
+  }
+  if (message.action === "grabCaptcha") {
+    grabCaptchaImage()
+      .then((result) => sendResponse(result))
+      .catch((err) => sendResponse({ ok: false, error: String(err?.message || err) }));
+    return true;
+  }
+  if (message.action === "fillCaptcha") {
+    try {
+      sendResponse(fillCaptchaInput(String(message.code || "")));
+    } catch (err) {
+      sendResponse({ ok: false, error: String(err?.message || err) });
+    }
     return false;
   }
   if (message.action === "judgePage") {

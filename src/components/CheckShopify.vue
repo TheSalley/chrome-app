@@ -19,7 +19,7 @@
       </span>
     </button>
 
-    <div v-if="loading" class="surface-card scan-card">
+    <div v-if="loading" class="surface-card scan-card" aria-busy="true">
       <svg class="spinner" viewBox="0 0 24 24" fill="none">
         <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5" opacity=".2"></circle>
         <path d="M21 12a9 9 0 00-9-9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
@@ -49,7 +49,7 @@
             </svg>
           </span>
           <div>
-            <h3 class="result-title">{{ info.isShopify ? "Shopify 店铺" : "页面检测结果" }}</h3>
+            <h2 class="result-title">{{ info.isShopify ? "Shopify 店铺" : "页面检测结果" }}</h2>
           </div>
         </div>
         <span class="status-chip" :class="info.isShopify ? 'is-success' : 'is-neutral'">

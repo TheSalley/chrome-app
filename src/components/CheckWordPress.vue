@@ -55,7 +55,7 @@
       <span>{{ error }}</span>
     </div>
 
-    <div v-if="loading" class="surface-card scan-card">
+    <div v-if="loading" class="surface-card scan-card" aria-busy="true">
       <svg class="spinner" viewBox="0 0 24 24" fill="none">
         <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5" opacity=".2"></circle>
         <path d="M21 12a9 9 0 00-9-9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
@@ -77,7 +77,7 @@
               </svg>
             </span>
             <div>
-              <h3 class="result-title">No-Index 设置</h3>
+              <h2 class="result-title">No-Index 设置</h2>
             </div>
           </div>
           <span
@@ -112,7 +112,7 @@
               </svg>
             </span>
             <div>
-              <h3 class="result-title">隐藏板块</h3>
+              <h2 class="result-title">隐藏板块</h2>
             </div>
           </div>
           <span class="status-chip" :class="hiddenIds.length ? 'is-warning' : 'is-success'">
@@ -152,7 +152,7 @@
             </svg>
           </span>
           <div>
-            <h3 class="result-title">H1 标签</h3>
+            <h2 class="result-title">H1 标签</h2>
           </div>
         </div>
         <div class="h1-actions">
