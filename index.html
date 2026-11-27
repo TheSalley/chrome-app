@@ -5,6 +5,35 @@
     <link rel="icon" type="image/png" href="/icons/logo.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>网站部-小工具</title>
+    <style>
+      /* 首屏底色与最终机身背景一致，避免 popup 打开时闪白 */
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        width: 360px;
+        height: 600px;
+        overflow: hidden;
+        /* background: #10151e; */
+        /* background-image: radial-gradient(
+          78% 52% at 50% 34%,
+          rgba(90, 122, 168, 0.28) 0%,
+          rgba(20, 26, 38, 0) 68%
+        ); */
+      }
+      /* 应用挂载前占位，防止高度塌陷造成跳动 */
+      #app {
+        width: 360px;
+        height: 600px;
+      }
+      /* 深色模式下同步首屏底色 */
+      @media (prefers-color-scheme: dark) {
+        html,
+        body {
+          background: #05070b;
+        }
+      }
+    </style>
   </head>
   <body>
     <div id="app"></div>

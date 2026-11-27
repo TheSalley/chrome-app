@@ -47,28 +47,24 @@ function onChange(event) {
 .toggle-track {
   position: relative;
   display: block;
-  width: 51px;
-  height: 31px;
-  border: 0.5px solid var(--separator, rgba(60,60,67,0.12));
+  width: 46px;
+  height: 28px;
+  border: 0;
   border-radius: 999px;
-  background: var(--fill, rgba(120,120,128,0.08));
+  background: #e9e9ea;
   transition: background-color 200ms var(--ease-apple), opacity 200ms var(--ease-apple);
-}
-
-.toggle:hover:not(.is-disabled) .toggle-track {
-  background: var(--fill-hover, rgba(120,120,128,0.14));
 }
 
 .toggle-thumb {
   position: absolute;
   top: 2px;
   left: 2px;
-  width: 27px;
-  height: 27px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   background: #fff;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.25), 0 1px 1px rgba(0,0,0,0.08);
-  transition: transform 200ms var(--ease-apple);
+  box-shadow: 0 3px 8px rgba(0,0,0,0.15), 0 3px 1px rgba(0,0,0,0.06), 0 0 0 0.5px rgba(0,0,0,0.04);
+  transition: transform 250ms cubic-bezier(0.28, 0.6, 0.2, 1);
 }
 
 .toggle:active:not(.is-disabled) .toggle-thumb {
@@ -76,15 +72,20 @@ function onChange(event) {
 }
 
 .toggle.is-on .toggle-track {
-  background: var(--success, #34a853);
+  background: #34c759;
+}
+
+@media (prefers-color-scheme: dark) {
+  .toggle-track { background: rgba(120,120,128,0.32); }
+  .toggle.is-on .toggle-track { background: #30d158; }
 }
 
 .toggle.is-on .toggle-thumb {
-  transform: translateX(20px);
+  transform: translateX(18px);
 }
 
 .toggle.is-on:active:not(.is-disabled) .toggle-thumb {
-  transform: translateX(20px) scale(0.92);
+  transform: translateX(18px) scale(0.92);
 }
 
 .toggle.is-disabled {
